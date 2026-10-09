@@ -14,6 +14,8 @@ import type {
 
 export const storageKey = "im-delivery-schedule-v2";
 export const pantherDemoSeedKey = "im-panther-grove-demo-seed-2026-08-11";
+/** Unreadable saved data is copied here before defaults overwrite it, so it can be recovered by hand. */
+export const corruptBackupKey = `${storageKey}-corrupt-backup`;
 
 const PANTHER_PROJECT_IDS = ["project-1700", "project-1616"];
 
@@ -103,7 +105,10 @@ export function resolveInitialWorkspace(
 
 export function loadWorkspace(storage: StorageLike): LoadedWorkspace {
   const shouldSeedPantherDemo = !storage.getItem(pantherDemoSeedKey);
-  const workspace = resolveInitialWorkspace(parseSavedWorkspace(storage.getItem(storageKey)), shouldSeedPantherDemo);
+  const raw = storage.getItem(storageKey);
+  const saved = parseSavedWorkspace(raw);
+  if (raw && !saved) storage.setItem(corruptBackupKey, raw);
+  const workspace = resolveInitialWorkspace(saved, shouldSeedPantherDemo);
   if (shouldSeedPantherDemo) storage.setItem(pantherDemoSeedKey, "true");
   return workspace;
 }

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { defaultActiveProjectId, defaultDeliveries, defaultProjects } from "../../lib/seed-data";
 import {
+  corruptBackupKey,
   loadWorkspace,
   pantherDemoSeedKey,
   parseSavedWorkspace,
@@ -89,6 +90,7 @@ describe("loadWorkspace / saveWorkspace", () => {
   test("survives a corrupt saved workspace", () => {
     const storage = memoryStorage({ [storageKey]: "{broken", [pantherDemoSeedKey]: "true" });
     expect(loadWorkspace(storage).projects).toBe(defaultProjects);
+    expect(storage.data[corruptBackupKey]).toBe("{broken");
   });
 
   test("round-trips a saved snapshot", () => {
