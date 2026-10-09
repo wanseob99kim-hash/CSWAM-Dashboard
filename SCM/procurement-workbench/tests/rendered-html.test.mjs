@@ -48,6 +48,7 @@ test("server-renders the procurement workbench shell", async () => {
   assert.match(html, /<html lang="en"/);
   assert.match(html, /CSWind America/);
   assert.match(html, /Wind tower procurement/);
+  assert.match(html, /<span class="sync-chip" data-state="connecting" role="status"[^>]*>.*Connecting…<\/span>/);
 });
 
 test("renders every workspace tab", async () => {

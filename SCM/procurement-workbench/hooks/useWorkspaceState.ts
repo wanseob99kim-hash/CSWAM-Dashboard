@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { createBulkDeliveryBatches, createDeliveryDraft, createEcnDraft, createInternalNcrDraft, createProjectDraft, createSupplierNcrDraft, createTodoDraft } from "@/lib/drafts";
 import { defaultActiveProjectId, defaultBomItems, defaultDeliveries, defaultInternalNcrs, defaultProjects, defaultSupplierNcrs, defaultTodoItems } from "@/lib/seed-data";
-import { loadWorkspace, saveWorkspace } from "@/lib/storage";
+import type { WorkspaceSnapshot } from "@/lib/storage";
+import { useWorkspaceSync } from "./useWorkspaceSync";
 import type { BomItem, BulkDeliveryBatch, Delivery, DeliveryEntryMode, EcnRecord, InternalNcr, Project, PurchasePoLine, SupplierNcr, SupplierSchedulePlan, TodoItem, WorkspaceTab } from "@/lib/types";
 
 export type WorkspaceState = ReturnType<typeof useWorkspaceState>;
@@ -83,8 +84,6 @@ export function useWorkspaceState() {
 
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceTab>("overview");
 
-  const [hydrated, setHydrated] = useState(false);
-
   const [showProjectForm, setShowProjectForm] = useState(false);
 
   const [showDeliveryForm, setShowDeliveryForm] = useState(false);
@@ -109,39 +108,50 @@ export function useWorkspaceState() {
 
   const [todoDraft, setTodoDraft] = useState<TodoItem>(createTodoDraft(defaultProjects[0].id));
 
-  useEffect(() => {
-    const workspace = loadWorkspace(window.localStorage);
-    // Hydrating from localStorage has to happen after mount so the server and first
-    // client render match; these one-time updates are the intended sync.
-    /* eslint-disable react-hooks/set-state-in-effect */
-    setProjectList(workspace.projects);
-    setActiveProjectId(workspace.activeProjectId);
-    setDeliveryList(workspace.deliveries);
-    setBomItems(workspace.bomItems);
-    if (workspace.supplierNcrs) setSupplierNcrs(workspace.supplierNcrs);
-    if (workspace.internalNcrs) setInternalNcrs(workspace.internalNcrs);
-    if (workspace.ecnRecords) setEcnRecords(workspace.ecnRecords);
-    if (workspace.todoItems) setTodoItems(workspace.todoItems);
-    if (workspace.supplierPlans) setSupplierPlans(workspace.supplierPlans);
-    if (workspace.purchasePoLines) setPurchasePoLines(workspace.purchasePoLines);
-    setHydrated(true);
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    saveWorkspace(window.localStorage, {
+  const snapshot = useMemo<WorkspaceSnapshot>(
+    () => ({
       projects: projectList,
       deliveries: deliveryList,
       bomItems,
+      purchasePoLines,
+      supplierPlans,
       supplierNcrs,
       internalNcrs,
       ecnRecords,
       todoItems,
-      supplierPlans,
-      purchasePoLines,
-    });
-  }, [bomItems, deliveryList, ecnRecords, hydrated, internalNcrs, projectList, purchasePoLines, supplierNcrs, supplierPlans, todoItems]);
+    }),
+    [bomItems, deliveryList, ecnRecords, internalNcrs, projectList, purchasePoLines, supplierNcrs, supplierPlans, todoItems],
+  );
+
+  const { hydrated, syncStatus, saveNow, importLocalData, dismissImport, dismissConflicts, discardLocalChanges } = useWorkspaceSync({
+    snapshot,
+    hydrate: (initial, initialProjectId) => {
+      setActiveProjectId(initialProjectId);
+      setProjectList(initial.projects);
+      setDeliveryList(initial.deliveries);
+      setBomItems(initial.bomItems);
+      setPurchasePoLines(initial.purchasePoLines);
+      setSupplierPlans(initial.supplierPlans);
+      setSupplierNcrs(initial.supplierNcrs);
+      setInternalNcrs(initial.internalNcrs);
+      setEcnRecords(initial.ecnRecords);
+      setTodoItems(initial.todoItems);
+    },
+    replace: (next, previous) => {
+      // Only take the server's list when the app still shows what the engine last saw.
+      const take = <T,>(key: keyof WorkspaceSnapshot) => (current: T[]) =>
+        (current as unknown) === previous[key] ? (next[key] as unknown as T[]) : current;
+      setProjectList(take("projects"));
+      setDeliveryList(take("deliveries"));
+      setBomItems(take("bomItems"));
+      setPurchasePoLines(take("purchasePoLines"));
+      setSupplierPlans(take("supplierPlans"));
+      setSupplierNcrs(take("supplierNcrs"));
+      setInternalNcrs(take("internalNcrs"));
+      setEcnRecords(take("ecnRecords"));
+      setTodoItems(take("todoItems"));
+    },
+  });
 
   return {
     projectList, setProjectList, deliveryList, setDeliveryList, bomItems, setBomItems, supplierNcrs,
@@ -158,7 +168,8 @@ export function useWorkspaceState() {
     ecnProjectFilter, setEcnProjectFilter, ecnStatusFilter, setEcnStatusFilter, ecnImpactFilter,
     setEcnImpactFilter, ecnSort, setEcnSort, bomManufacturerFilter, setBomManufacturerFilter,
     bomCategoryFilter, setBomCategoryFilter, bomSearch, setBomSearch, activeWorkspace,
-    setActiveWorkspace, hydrated, setHydrated, showProjectForm, setShowProjectForm, showDeliveryForm,
+    setActiveWorkspace, hydrated, syncStatus, saveNow, importLocalData, dismissImport,
+    dismissConflicts, discardLocalChanges, showProjectForm, setShowProjectForm, showDeliveryForm,
     setShowDeliveryForm, deliveryEntryMode, setDeliveryEntryMode, editingDeliveryId,
     setEditingDeliveryId, editingProjectId, setEditingProjectId, projectDraft, setProjectDraft,
     deliveryDraft, setDeliveryDraft, bulkDeliveryBatches, setBulkDeliveryBatches, supplierNcrDraft,

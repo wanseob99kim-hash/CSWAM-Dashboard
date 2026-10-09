@@ -2,6 +2,7 @@
 
 import { ProjectSidebar } from "@/components/workbench/project-sidebar";
 import { WorkbenchHeader } from "@/components/workbench/workbench-header";
+import { SyncNotices } from "@/components/workbench/sync-status";
 import { ProjectEditor } from "@/components/workbench/project-editor";
 import { DeliveryEditor } from "@/components/workbench/delivery-editor";
 import { DeliveryPortfolio } from "@/components/workbench/delivery-portfolio";
@@ -24,6 +25,7 @@ export default function Home() {
       <ProjectSidebar wb={wb} />
       <section className="im-workspace">
         <WorkbenchHeader wb={wb} />
+        <SyncNotices wb={wb} />
         <ProjectEditor wb={wb} />
         <DeliveryEditor wb={wb} />
         <DeliveryPortfolio wb={wb} />

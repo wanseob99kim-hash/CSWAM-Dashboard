@@ -116,3 +116,38 @@ export function loadWorkspace(storage: StorageLike): LoadedWorkspace {
 export function saveWorkspace(storage: StorageLike, snapshot: WorkspaceSnapshot): void {
   storage.setItem(storageKey, JSON.stringify(snapshot));
 }
+
+/** Server sync bookkeeping: the last server-confirmed workspace, row versions, and the read cursor. */
+export const syncMetaKey = "im-workspace-sync-v1";
+/** Copy of this browser's pre-sync data, kept when the browser first connects to the shared workspace. */
+export const preSyncBackupKey = `${storageKey}-pre-sync-backup`;
+
+export type SyncMeta = {
+  synced: WorkspaceSnapshot;
+  versions: Partial<Record<keyof WorkspaceSnapshot, Record<string, number>>>;
+  serverTime: string | null;
+};
+
+export function loadSyncMeta(storage: StorageLike): SyncMeta | null {
+  const raw = storage.getItem(syncMetaKey);
+  if (!raw) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object") return null;
+  const record = parsed as Record<string, unknown>;
+  const synced = parseSavedWorkspace(JSON.stringify(record.synced ?? null));
+  if (!synced || !record.versions || typeof record.versions !== "object") return null;
+  return {
+    synced: Object.fromEntries(SNAPSHOT_KEYS.map((key) => [key, synced[key] ?? []])) as WorkspaceSnapshot,
+    versions: record.versions as SyncMeta["versions"],
+    serverTime: typeof record.serverTime === "string" ? record.serverTime : null,
+  };
+}
+
+export function saveSyncMeta(storage: StorageLike, meta: SyncMeta): void {
+  storage.setItem(syncMetaKey, JSON.stringify(meta));
+}

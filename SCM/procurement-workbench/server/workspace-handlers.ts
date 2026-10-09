@@ -1,8 +1,21 @@
 // HTTP layer for the workspace API. Route files only pass in the D1 database,
 // so these handlers can be tested against a local D1.
-import { userFromHeaders } from "../lib/auth-headers";
+import { userFromHeaders, type ChatGPTUser } from "../lib/auth-headers";
 import { MAX_SYNC_BODY_BYTES, sinceSchema, syncRequestSchema } from "./validation";
 import { applySync, readWorkspace, type Clock, type WorkspaceDb } from "./workspace-service";
+
+/**
+ * Local development has no Sites identity headers. When VITE_DEV_USER_EMAIL is set
+ * (e.g. in .env.development.local) the dev server acts as that user. import.meta.env.DEV
+ * is false in production builds, so this fallback is compiled out there.
+ */
+const DEV_USER_EMAIL = import.meta.env.DEV ? import.meta.env.VITE_DEV_USER_EMAIL : undefined;
+
+function requestUser(request: Request): ChatGPTUser | null {
+  const user = userFromHeaders(request.headers);
+  if (user || !DEV_USER_EMAIL) return user;
+  return { email: DEV_USER_EMAIL, displayName: DEV_USER_EMAIL, fullName: null };
+}
 
 type ApiResponse<T> = {
   success: boolean;
@@ -27,7 +40,7 @@ function serverError(context: string, error: unknown): Response {
 }
 
 export async function handleGetWorkspace(request: Request, db: WorkspaceDb, clock: Clock = () => new Date()) {
-  if (!userFromHeaders(request.headers)) return fail(401, "Sign in to load the workspace.");
+  if (!requestUser(request)) return fail(401, "Sign in to load the workspace.");
 
   const since = new URL(request.url).searchParams.get("since");
   if (since !== null && !sinceSchema.safeParse(since).success) {
@@ -42,7 +55,7 @@ export async function handleGetWorkspace(request: Request, db: WorkspaceDb, cloc
 }
 
 export async function handleSync(request: Request, db: WorkspaceDb, clock: Clock = () => new Date()) {
-  const user = userFromHeaders(request.headers);
+  const user = requestUser(request);
   if (!user) return fail(401, "Sign in to save changes.");
 
   const declaredLength = Number(request.headers.get("content-length") ?? 0);

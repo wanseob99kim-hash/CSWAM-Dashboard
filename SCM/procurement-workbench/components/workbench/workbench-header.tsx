@@ -1,3 +1,4 @@
+import { SyncStatusChip } from "@/components/workbench/sync-status";
 import type { Workbench } from "@/hooks/useWorkbench";
 
 type WorkbenchHeaderProps = {
@@ -19,6 +20,7 @@ export function WorkbenchHeader({ wb }: WorkbenchHeaderProps) {
         <div className="header-title-row">
           <h1>{activeProject.name}</h1>
           <span className="company-chip">CSWind America</span>
+          <SyncStatusChip wb={wb} />
         </div>
         <nav className="workspace-tabs" aria-label="Workbench sections">
           <button className={activeWorkspace === "overview" ? "workspace-tab active" : "workspace-tab"} onClick={() => setActiveWorkspace("overview")}>Overview</button>
