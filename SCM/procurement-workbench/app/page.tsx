@@ -1254,7 +1254,9 @@ function formatEmailCell(value: string | number, width: number, align: "left" | 
   return align === "right" ? cleanText.padStart(width, " ") : cleanText.padEnd(width, " ");
 }
 
-function renderEmailTableRow(cells: Array<[string | number, number, "left" | "right"?]>) {
+type EmailCell = [value: string | number, width: number, align?: "left" | "right"];
+
+function renderEmailTableRow(cells: EmailCell[]) {
   return cells.map(([value, width, align = "left"]) => formatEmailCell(value, width, align)).join("  ");
 }
 
@@ -1349,7 +1351,7 @@ function createSupplierSchedulePlan(project: Project, po: string, rows: Delivery
 
 function renderSupplierBatchTable(plan: SupplierSchedulePlan) {
   if (!plan.batches.length) return "No batch lines have been created for this PO yet.";
-  const headers: Array<[string, number, "left" | "right"?]> = [
+  const headers: EmailCell[] = [
     ["Category", 18],
     ["Selected supplier", 24],
     ["D.T", 8],
@@ -2829,7 +2831,7 @@ export default function Home() {
     const batchNumber = supplierPlan.batches.length + 1;
     const template = supplierPlan.batches[supplierPlan.batches.length - 1];
     const newBatch = {
-      id: `supplier-batch-${supplierPlan.projectId}-${supplierPlan.po}-B${batchNumber}-${Date.now()}`,
+      id: createId(`supplier-batch-${supplierPlan.projectId}-${supplierPlan.po}-B${batchNumber}`),
       deliveryId: "",
       batch: `B${batchNumber}`,
       qty: 0,
@@ -2920,7 +2922,7 @@ export default function Home() {
 
   return (
     <main className="im-shell">
-      <aside className="project-sidebar" aria-label="IM项目导航">
+      <aside className="project-sidebar" aria-label="Project navigation">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">
             <span className="tower-mini">
@@ -4289,7 +4291,7 @@ export default function Home() {
                     </div>
                   ))
                 ) : (
-                  <div className="empty-state report-empty">当前筛选范围内没有 freight/tariff 数据。</div>
+                  <div className="empty-state report-empty">No freight or tariff data in the current filter.</div>
                 )}
               </div>
             </div>
@@ -4317,7 +4319,7 @@ export default function Home() {
                     </div>
                   ))
                 ) : (
-                  <div className="empty-state report-empty">当前筛选范围内没有海运记录。</div>
+                  <div className="empty-state report-empty">No ocean shipments in the current filter.</div>
                 )}
               </div>
             </div>
@@ -4476,7 +4478,7 @@ export default function Home() {
                     </div>
                   ))
                 ) : (
-                  <div className="empty-state">先新增 delivery batch，并在 Qty 填入 tower 数量。</div>
+                  <div className="empty-state">Add a delivery batch first and enter the tower count in Qty.</div>
                 )}
               </div>
             </div>
@@ -4510,7 +4512,7 @@ export default function Home() {
                     </div>
                   ))
                 ) : (
-                  <div className="empty-state">上传 BOM CSV 后，这里会显示每个 category 和物料的用量、单价、项目总价。</div>
+                  <div className="empty-state">Upload a BOM CSV to see usage, unit price, and project total for each category and material.</div>
                 )}
               </div>
             </div>
@@ -4719,7 +4721,7 @@ export default function Home() {
                 </div>
               ))
             ) : (
-              <div className="empty-state ncr-empty">还没有 Supplier NCR。上方录入厂家物料问题后会显示在这里。</div>
+              <div className="empty-state ncr-empty">No supplier NCRs yet. Supplier material issues entered above will appear here.</div>
             )}
           </div>
         </section>
@@ -4788,7 +4790,7 @@ export default function Home() {
                 </div>
               ))
             ) : (
-              <div className="empty-state ncr-empty">还没有 Internal NCR。录入补料或重新下单后会显示 ETA、成本和收货状态。</div>
+              <div className="empty-state ncr-empty">No internal NCRs yet. Replenishments or reorders will show ETA, cost, and receipt status here.</div>
             )}
           </div>
         </section>
@@ -4960,7 +4962,7 @@ export default function Home() {
                 </article>
               ))
             ) : (
-              <div className="empty-state">这个项目还没有 delivery。点击 Add delivery 录入第一条 PO / batch schedule。</div>
+              <div className="empty-state">This project has no deliveries yet. Click Add delivery to enter the first PO / batch schedule.</div>
             )}
           </div>
         </section>
@@ -5100,7 +5102,7 @@ export default function Home() {
                 </div>
               ))
             ) : (
-              <div className="empty-state table-empty">没有符合当前项目/筛选条件的 delivery。可以点击 Add delivery 新增，或调整搜索和 category。</div>
+              <div className="empty-state table-empty">No deliveries match the current project and filters. Click Add delivery or adjust the search and category.</div>
             )}
           </div>
         </section>
