@@ -1,6 +1,6 @@
 # D1 영속화 설계
 
-상태: 단계 1 (스키마·마이그레이션·데모 시드), 단계 2 (`db/mappers.ts`, `lib/sync.ts`) 완료 · 단계 3 이후 미착수 · 작성일: 2026-10-09
+상태: 단계 1~3 완료 (스키마·시드, 변환·차이 계산, API) · 단계 4 (화면 연결) 이후 미착수 · 작성일: 2026-10-09
 
 ## 1. 문제
 
@@ -124,6 +124,15 @@ D1 은 한 쿼리당 바인딩 파라미터 수에 제한이 있으므로 여러
 ### 4.4 변경 이력 `change_log`
 
 `(id, collection, row_id, action[upsert|delete], changed_by, changed_at, before_json, after_json)`. NCR·예산·납기 변경 추적용. 화면은 범위 밖, 데이터만 먼저 쌓는다.
+
+### 4.5 구현 메모 (단계 3)
+
+- 코드: `server/validation.ts`(요청 검증), `server/workspace-service.ts`(조회·반영), `server/workspace-handlers.ts`(HTTP), 라우트 `app/api/workspace/route.ts`, `app/api/workspace/sync/route.ts`.
+- 행마다 **선행 조건**(새 행: 해당 id 없음 / 기존 행: 버전 일치)을 SQL 로 걸어, 변경 이력·공급사 계획 자식 행·본 행 쓰기를 같은 조건에서만 실행한다. 읽은 뒤 batch 전에 다른 요청이 끼어들어도 쓰기는 반영되지 않고 충돌로 보고되며 이력도 남지 않는다.
+- `since` 조회는 60초를 겹쳐 다시 보낸다(요청 처리 시각과 커밋 시각 차이 보정). 클라이언트는 id 기준으로 병합하므로 중복은 무해하다.
+- 제한: 요청당 행 200개, 본문 1MB, 공급사 계획당 배치·배분 각 200개, 파일명 목록 50개.
+- 참조 검증(예: 납품의 `projectId` 가 실제 프로젝트인지)은 v1 에서 하지 않는다. 기존 브라우저 데이터에 고아 행이 있으면 저장 자체가 막히기 때문. 단계 4 가져오기 때 실태를 보고 결정.
+- drizzle-orm 0.45 의 `db.batch` 는 파라미터가 있는 `db.run(sql)` 을 처리하지 못해, D1 `batch` 에 직접 바인딩한다(`runBatch`).
 
 ## 5. 클라이언트
 

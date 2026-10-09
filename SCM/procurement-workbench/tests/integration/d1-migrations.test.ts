@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
-import { Miniflare } from "miniflare";
+import type { Miniflare } from "miniflare";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { FLAT_COLLECTIONS, fromRow, fromSupplierPlanRows, toRow, toSupplierPlanRows } from "../../db/mappers";
 import * as schema from "../../db/schema";
@@ -9,38 +8,14 @@ import { buildSeedSql, SEED_AUDIT } from "../../db/seed";
 import { defaultBomItems, defaultDeliveries, defaultProjects } from "../../lib/seed-data";
 import type { D1Database } from "@cloudflare/workers-types/latest";
 import { fullWorkspace } from "../fixtures/workspace";
-
-const migrationsDir = new URL("../../drizzle/", import.meta.url);
-const journal = JSON.parse(readFileSync(new URL("meta/_journal.json", migrationsDir), "utf8")) as {
-  entries: Array<{ tag: string }>;
-};
-
-function statementsOf(sql: string) {
-  return sql
-    .split("--> statement-breakpoint")
-    .map((statement) => statement.replace(/^--.*$/gm, "").trim())
-    .filter(Boolean);
-}
-
-async function runSql(d1: D1Database, sql: string) {
-  for (const statement of statementsOf(sql)) await d1.prepare(statement).run();
-}
+import { createTestD1, journal, migrationsDir, runSql, type TestD1 } from "../helpers/d1";
 
 let mf: Miniflare;
 let d1: D1Database;
-let db: ReturnType<typeof drizzle<typeof schema>>;
+let db: TestD1["db"];
 
 beforeAll(async () => {
-  mf = new Miniflare({
-    modules: true,
-    script: "export default { fetch() { return new Response(null, { status: 204 }); } }",
-    d1Databases: { DB: "workbench-test" },
-  });
-  d1 = (await mf.getD1Database("DB")) as unknown as D1Database;
-  for (const { tag } of journal.entries) {
-    await runSql(d1, readFileSync(new URL(`${tag}.sql`, migrationsDir), "utf8"));
-  }
-  db = drizzle(d1, { schema, casing: "snake_case" });
+  ({ mf, d1, db } = await createTestD1("workbench-migrations"));
 }, 60_000);
 
 afterAll(async () => {

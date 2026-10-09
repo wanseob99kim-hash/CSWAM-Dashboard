@@ -1,9 +1,9 @@
 // Builds the demo seed migration from lib/seed-data.ts so the browser demo and
 // the database seed never drift apart. Regenerate with `npm run db:seed-sql`.
 import { getTableColumns, getTableName } from "drizzle-orm";
-import { toSnakeCase } from "drizzle-orm/casing";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import { defaultBomItems, defaultDeliveries, defaultProjects } from "../lib/seed-data";
+import { sqlColumnName } from "./columns";
 import { bomItems, deliveries, projects } from "./schema";
 
 export const SEED_AUDIT = {
@@ -36,10 +36,7 @@ export function buildInsertStatement(table: SQLiteTable, row: object): string {
   if (unknownKeys.length) throw new Error(`${getTableName(table)} has no column for: ${unknownKeys.join(", ")}`);
 
   const present = columns.filter(([key]) => values[key] !== undefined);
-  // Columns declared without an explicit name are snake_cased by the `casing` option at query time.
-  const names = present
-    .map(([, column]) => `\`${column.keyAsName ? toSnakeCase(column.name) : column.name}\``)
-    .join(", ");
+  const names = present.map(([, column]) => `\`${sqlColumnName(column)}\``).join(", ");
   const literals = present
     .map(([key, column]) => toSqlLiteral(values[key] === null ? null : column.mapToDriverValue(values[key])))
     .join(", ");

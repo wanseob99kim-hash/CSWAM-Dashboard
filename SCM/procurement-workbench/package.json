@@ -13,17 +13,19 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
-    "test:ssr": "npm run build && node --test tests/rendered-html.test.mjs",
+    "test:ssr": "npm run build && node --import ./tests/support/register-cloudflare-shim.mjs --test tests/rendered-html.test.mjs",
     "test": "vitest run && npm run test:ssr",
     "db:generate": "drizzle-kit generate",
     "db:seed-sql": "tsx scripts/generate-seed-sql.ts"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
+    "drizzle-zod": "^0.8.3",
     "next": "16.2.6",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",
