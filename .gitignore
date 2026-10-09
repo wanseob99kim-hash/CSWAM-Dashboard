@@ -1,0 +1,6 @@
+# Claude Code / bkit session state
+.bkit/
+**/.bkit/
+
+# Archives
+*.zip
