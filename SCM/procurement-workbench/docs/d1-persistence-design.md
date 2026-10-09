@@ -1,6 +1,6 @@
 # D1 영속화 설계
 
-상태: 제안 (구현 전) · 작성일: 2026-10-09
+상태: 결정 반영, 단계 1 완료 (스키마·마이그레이션·데모 시드), 단계 2 이후 미착수 · 작성일: 2026-10-09
 
 ## 1. 문제
 
@@ -12,7 +12,7 @@
 
 목표: 데이터를 Cloudflare D1(서버 SQLite)에 저장해 팀이 하나의 데이터를 공유하고, 변경 이력을 남긴다.
 
-범위 밖: 첨부파일 실제 저장(R2), 실시간 협업 편집, 권한 세분화(역할별 읽기/쓰기).
+범위 밖: 실시간 협업 편집, 권한 세분화(역할별 읽기/쓰기).
 
 ## 2. 핵심 결정: 기존 저장 경계에서 "차이 동기화"
 
@@ -51,12 +51,14 @@ hooks/useWorkspaceState.ts
 | `updated_by` | TEXT | 수정자 이메일 (SIWC 헤더) |
 | `deleted_at` | TEXT NULL | 소프트 삭제. 다른 사용자에게 삭제를 전파하기 위해 필요 |
 
-날짜·주차 값은 지금처럼 `YYYY-MM-DD` 문자열(TEXT). boolean 은 INTEGER(0/1, Drizzle `mode: "boolean"`).
+날짜·주차 값은 지금처럼 `YYYY-MM-DD` 문자열(TEXT). boolean 은 INTEGER(0/1, Drizzle `mode: "boolean"`). 금액은 센트 INTEGER(`money` 컬럼 타입), 수량은 REAL.
+
+`project_id` 에는 인덱스만 두고 외래키 제약은 걸지 않는다. 클라이언트 import 데이터에 아직 없는 프로젝트를 가리키는 행이 있을 수 있고, 동기화 batch 안의 행 순서에 따라 실패하지 않게 하기 위함이다. 참조 검증은 sync API 에서 한다.
 
 | 테이블 | 원본 타입 | 비고 |
 |---|---|---|
 | `projects` | `Project` | |
-| `deliveries` | `Delivery` | `project_id` FK, 인덱스 `(project_id)`, `(po)` |
+| `deliveries` | `Delivery` | 인덱스 `(project_id)`, `(po)` |
 | `bom_items` | `BomItem` | `source` = purchasing / internal |
 | `purchase_po_lines` | `PurchasePoLine` | PO 상세 엑셀 import 결과. 인덱스 `(project_id, po)` |
 | `supplier_plans` | `SupplierSchedulePlan` | 메일 본문·체크 상태. `attachments` 는 JSON TEXT |
@@ -66,58 +68,15 @@ hooks/useWorkspaceState.ts
 | `internal_ncrs` | `InternalNcr` | |
 | `ecn_records` | `EcnRecord` | |
 | `todo_items` | `TodoItem` | |
+| `files` | – | R2 에 저장한 첨부파일 메타데이터 (`owner_type`, `owner_id`, `kind`, `r2_key`, 파일명, 크기, 업로더) |
 | `change_log` | – | 아래 4.4 참고 |
 
 공급사 계획은 **집합체(aggregate)** 로 다룬다. 계획 하나를 upsert 하면 같은 batch 안에서 그 계획의 batch·allocation 행을 지우고 다시 넣는다. 클라이언트가 계획을 통째로 바꾸는 현재 코드와 맞는다.
 
 중복 저장 필드 `SupplierNcr.projectName`, `PurchasePoLine.projectCode/projectName` 은 v1 에서는 그대로 저장한다(import 원본 보존). 프로젝트명 변경 시 어긋날 수 있으므로 v2 에서 조인으로 대체.
 
-Drizzle 스키마 예시 (`db/schema.ts`):
 
-```ts
-import { integer, real, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
-
-const audit = {
-  version: integer("version").notNull().default(1),
-  updatedAt: text("updated_at").notNull(),
-  updatedBy: text("updated_by").notNull(),
-  deletedAt: text("deleted_at"),
-};
-
-export const projects = sqliteTable("projects", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  code: text("code").notNull(),
-  phase: text("phase").notNull(),
-  productionWindow: text("production_window").notNull(),
-  plant: text("plant").notNull(),
-  budget: real("budget").notNull().default(0),
-  status: text("status"),
-  ...audit,
-});
-
-export const deliveries = sqliteTable(
-  "deliveries",
-  {
-    id: text("id").primaryKey(),
-    projectId: text("project_id").notNull().references(() => projects.id),
-    po: text("po").notNull(),
-    batch: text("batch").notNull(),
-    supplierSchedule: text("supplier_schedule").notNull(),
-    productionNeed: text("production_need").notNull(),
-    actualEta: text("actual_eta"),
-    actualArrival: text("actual_arrival"),
-    qty: real("qty").notNull(),
-    goodsReceived: integer("goods_received", { mode: "boolean" }).notNull(),
-    freightFee: real("freight_fee").notNull(),
-    tariff: real("tariff").notNull(),
-    materialCost: real("material_cost").notNull(),
-    // ... Delivery 의 나머지 필드 1:1
-    ...audit,
-  },
-  (t) => [index("deliveries_project_idx").on(t.projectId), index("deliveries_po_idx").on(t.po)],
-);
-```
+실제 스키마: [`db/schema.ts`](../db/schema.ts). 컬럼명은 Drizzle `casing: "snake_case"` 로 자동 변환된다.
 
 행 ↔ 도메인 타입 변환은 `lib/db-mappers.ts` 에 컬렉션별 `toRow` / `fromRow` 로 두고 왕복 테스트를 붙인다.
 
@@ -199,25 +158,26 @@ window focus / 60초마다
 2. 가져오기 = 로컬 스냅샷 전체를 `upserts` 로 보내는 sync 요청. id 기준 upsert 라 여러 사람이 가져와도 중복 행이 생기지 않는다. 같은 id 를 서로 다르게 고친 경우 나중 사람 것이 충돌로 보고된다.
 3. 시드 데이터(`lib/seed-data.ts`)는 초기 마이그레이션에서 **프로젝트 목록만** 넣는다. Panther Grove 데모 납품·BOM 은 넣지 않는다. → 결정 필요
 
-## 7. 결정이 필요한 사항
+## 7. 결정 사항 (2026-10-09 확정)
 
-| # | 질문 | 제안 |
-|---|---|---|
-| 1 | 누가 편집할 수 있나? | Sites 접근 정책으로 회사 워크스페이스 한정 + 전원 편집 가능. 역할 구분은 v2 |
-| 2 | 데모 납품·BOM 시드 유지? | 프로젝트만 시드, 데모 납품·BOM 제외 |
-| 3 | 어느 브라우저 데이터가 기준인가? | 담당자 1명이 먼저 가져오기, 나머지는 필요 시 추가 가져오기 |
-| 4 | 금액 저장 단위 | v1 은 현재 계산과 같은 REAL(달러). 센트 정수 전환은 별도 작업 |
-| 5 | 첨부파일 | v1 은 지금처럼 파일명만. 실제 파일은 R2 로 v2 |
+| # | 질문 | 결정 | 반영 |
+|---|---|---|---|
+| 1 | 누가 편집할 수 있나? | 워크스페이스 전원 편집 가능 | 역할 구분 없음. 접근은 Sites 접근 정책으로 제한, 모든 변경에 `updated_by` 기록 |
+| 2 | 데모 데이터 시드 | 프로젝트 + 데모 납품 + BOM 모두 시드 | `drizzle/` 시드 마이그레이션(`INSERT OR IGNORE`) |
+| 3 | 기준 브라우저 데이터 | 추후 결정 | 6장 가져오기 기능은 단계 4에서 구현, 운영 절차는 보류 |
+| 4 | 금액 | 소수점 둘째 자리까지 | DB 는 **센트 정수(INTEGER)** 로 저장해 반올림 오차 없이 정확히 2자리 보장. Drizzle `money` 컬럼 타입이 달러↔센트 변환. 화면 `formatMoney` 도 2자리 표시 |
+| 5 | 첨부파일 | 실제 파일 저장 | R2 바인딩 `FILES` + `files` 메타데이터 테이블. 업로드/다운로드 API 는 단계 6 |
 
 ## 8. 구현 단계
 
 | 단계 | 작업 | 검증 |
 |---|---|---|
-| 1 | `.openai/hosting.json` 에 `"d1": "DB"`, `db/schema.ts` 작성, `npm run db:generate` 로 마이그레이션 생성, 프로젝트 시드 | 로컬 Miniflare D1 에서 마이그레이션 적용 |
+| 1 | `.openai/hosting.json` 에 `"d1": "DB"`, `"r2": "FILES"`, `db/schema.ts` 작성, `npm run db:generate` 로 마이그레이션 생성, 데모 시드 마이그레이션 | 로컬 Miniflare D1 에서 마이그레이션 적용 |
 | 2 | `lib/db-mappers.ts`, `lib/sync.ts`(`diffWorkspace`) | 단위 테스트: 왕복 변환, diff(추가/수정/삭제/무변경/중첩 계획) |
 | 3 | `GET`·`POST sync` 라우트, 인증, zod 검증, 충돌 처리, `change_log` | 로컬 D1 대상 통합 테스트: 정상 반영, 충돌, 401/400, 원자성 |
 | 4 | `useWorkspaceSync`, 저장 상태 칩, 오프라인 큐, 로컬 데이터 가져오기 | 브라우저 2개로 동시 편집 E2E (Playwright) |
 | 5 | 증분 조회(`since`), 포커스 시 새로고침 | E2E: A 수정 → B 화면 반영 |
+| 6 | 첨부파일 R2 업로드/다운로드 API, 공급사 계획·배치 화면 연결 | 통합 테스트: 업로드 → 메타데이터 → 다운로드, 크기·형식 제한 |
 
 단계 1~3 은 화면 변화 없이 배포 가능하다. 단계 4 부터 사용자에게 보인다.
 

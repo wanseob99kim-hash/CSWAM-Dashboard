@@ -10,11 +10,13 @@
     "build": "vinext build",
     "start": "vinext start",
     "typecheck": "tsc --noEmit",
-    "test:unit": "vitest run",
-    "test:ssr": "npm run build && node --test tests/rendered-html.test.mjs",
-    "test": "npm run test:unit && npm run test:ssr",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "db:generate": "drizzle-kit generate"
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:ssr": "npm run build && node --test tests/rendered-html.test.mjs",
+    "test": "vitest run && npm run test:ssr",
+    "db:generate": "drizzle-kit generate",
+    "db:seed-sql": "tsx scripts/generate-seed-sql.ts"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
@@ -37,6 +39,7 @@
     "eslint-config-next": "16.2.6",
     "react-server-dom-webpack": "19.2.6",
     "tailwindcss": "4.2.1",
+    "tsx": "^4.22.1",
     "typescript": "5.9.3",
     "vinext": "0.0.50",
     "vite": "8.0.13",

@@ -1,8 +1,10 @@
+import { roundMoney } from "./money";
 import type { Project } from "./types";
 
 export const moneyFormatter = new Intl.NumberFormat("en-US", {
   currency: "USD",
-  maximumFractionDigits: 0,
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
   style: "currency",
 });
 
@@ -14,7 +16,7 @@ export const compactMoneyFormatter = new Intl.NumberFormat("en-US", {
 });
 
 export function formatMoney(value: number) {
-  return moneyFormatter.format(value);
+  return moneyFormatter.format(roundMoney(value));
 }
 
 export function formatCompactMoney(value: number) {
