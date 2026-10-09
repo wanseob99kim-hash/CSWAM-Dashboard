@@ -59,7 +59,11 @@ describe("D1 migrations", () => {
   test("committed seed migration matches lib/seed-data.ts", () => {
     const seedTag = journal.entries.find(({ tag }) => tag.endsWith("_seed_demo"))?.tag;
     expect(seedTag, "seed migration missing from journal").toBeTruthy();
-    expect(readFileSync(new URL(`${seedTag}.sql`, migrationsDir), "utf8")).toBe(buildSeedSql());
+    // git may check SQL out with CRLF on Windows; compare content, not line endings.
+    const committed = readFileSync(new URL(`${seedTag}.sql`, migrationsDir), "utf8").replaceAll("
+", "
+");
+    expect(committed).toBe(buildSeedSql());
   });
 
   test("seeds demo projects, deliveries, and BOM", async () => {
