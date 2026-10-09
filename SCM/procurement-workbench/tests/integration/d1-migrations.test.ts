@@ -3,10 +3,12 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Miniflare } from "miniflare";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { FLAT_COLLECTIONS, fromRow, fromSupplierPlanRows, toRow, toSupplierPlanRows } from "../../db/mappers";
 import * as schema from "../../db/schema";
 import { buildSeedSql, SEED_AUDIT } from "../../db/seed";
 import { defaultBomItems, defaultDeliveries, defaultProjects } from "../../lib/seed-data";
 import type { D1Database } from "@cloudflare/workers-types/latest";
+import { fullWorkspace } from "../fixtures/workspace";
 
 const migrationsDir = new URL("../../drizzle/", import.meta.url);
 const journal = JSON.parse(readFileSync(new URL("meta/_journal.json", migrationsDir), "utf8")) as {
@@ -128,5 +130,36 @@ describe("supplier plan rows", () => {
       version: 1,
       deletedAt: null,
     });
+  });
+});
+
+describe("mappers against D1", () => {
+  const audit = { version: 1, updatedAt: "2026-10-09T12:00:00.000Z", updatedBy: "buyer@example.com" };
+
+  test.each(Object.entries(FLAT_COLLECTIONS))("%s round-trips through D1", async (key, table) => {
+    const item = fullWorkspace[key as keyof typeof FLAT_COLLECTIONS][0];
+    // The table is chosen at runtime, so its insert type cannot be inferred here.
+    await db.insert(table).values(toRow(table, item, audit) as never);
+    const rows = (await db.select().from(table)) as Array<Record<string, unknown>>;
+    expect(fromRow(rows.find((row) => row.id === item.id)!)).toEqual(item);
+  });
+
+  test("supplier plan aggregate round-trips through D1", async () => {
+    const [plan] = fullWorkspace.supplierPlans;
+    const rows = toSupplierPlanRows(plan, audit);
+    await db.batch([
+      db.insert(schema.supplierPlans).values(rows.plan as typeof schema.supplierPlans.$inferInsert),
+      db.insert(schema.supplierPlanBatches).values(rows.batches as Array<typeof schema.supplierPlanBatches.$inferInsert>),
+      db
+        .insert(schema.supplierMaterialAllocations)
+        .values(rows.allocations as Array<typeof schema.supplierMaterialAllocations.$inferInsert>),
+    ]);
+    const [planRow] = await db.select().from(schema.supplierPlans).where(eq(schema.supplierPlans.id, plan.id));
+    const restored = fromSupplierPlanRows(
+      planRow,
+      await db.select().from(schema.supplierPlanBatches),
+      await db.select().from(schema.supplierMaterialAllocations),
+    );
+    expect(restored).toEqual(plan);
   });
 });
