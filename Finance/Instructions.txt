@@ -1,0 +1,19 @@
+[매월 대시보드 업데이트]
+
+1. Raw data 폴더에 이번 달 파일 넣기
+   - Raw data\Financials\  CSWAM New Monthly Closing Pkg_YYYY.MM.xlsx
+   - Raw data\Forecast\    CSWAM Rolling FCST N+M.xlsx   (새 FCST 나왔을 때만)
+   - Raw data\Projects\    Cost Analysis based on Project_YYYY.MM.xlsx
+   - Raw data\Vendor\      FBL1N 말일자 다운로드 파일 (아이콘 칼럼 안 지워도 됨, 자동 삭제)
+
+2. Claude Code 에 "대시보드 업데이트해줘" 라고 요청
+   → Claude 가 점검 결과 보고 → "업로드할까요?" 확인 → 업로드
+
+   직접 할 때 (Finance 폴더에서):
+     python -m feeding            점검만
+     python -m feeding --upload   생성 + 업로드
+
+3. 최초 1회: 업로드 키 환경변수 설정 (PowerShell)
+     setx CSWAM_DASH_SECRET "<업로드 키>"   → VS Code / 터미널 재시작
+
+Excel 매크로(Dashboard Macro.xlsm, DashboardFeed.bas)는 백업용. 평소엔 안 써도 됨.

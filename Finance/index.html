@@ -1,0 +1,1962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS WIND America — Financial Dashboard</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js" onerror="console.warn('datalabels CDN blocked')"></script>
+
+<style>
+:root {
+  --primary:#3aaa7a; --primary-active:#2d8f65;
+  --canvas:#f3f6f4; --canvas-elevated:#ffffff;
+  --hairline:#dde8e2; --ink:#1a2e24; --body:#5a7268;
+  --muted:#8fada4; --on-primary:#ffffff;
+  --success:#5db88a; --warning:#f0a855; --danger:#e07878; --info:#7eb5d4;
+  --xxxs:4px;--xxs:8px;--xs:16px;--sm:24px;--md:32px;--lg:48px;--xl:64px;--xxl:96px;
+  --radius:8px;--radius-sm:6px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',-apple-system,system-ui,sans-serif;background:var(--canvas);color:var(--ink);font-size:14px;line-height:1.5;min-height:100vh;display:flex;}
+
+/* Sidebar */
+.sidebar{width:210px;flex-shrink:0;background:var(--canvas-elevated);border-right:1px solid var(--hairline);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:200;}
+.sidebar-brand{display:flex;align-items:center;gap:10px;padding:20px 16px 18px;border-bottom:1px solid var(--hairline);}
+.nav-mark{width:34px;height:34px;flex-shrink:0;background:var(--primary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;}
+.nav-mark svg{display:block;}
+.nav-wordmark{font-size:12px;font-weight:700;letter-spacing:.2px;color:var(--ink);line-height:1.3;}
+.nav-sub{font-size:10px;color:var(--body);letter-spacing:.1px;}
+.sidebar-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:2px;}
+.tab-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:transparent;border:none;border-radius:var(--radius-sm);color:var(--body);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;text-align:left;transition:background .15s,color .15s;}
+.tab-btn:hover{background:var(--canvas);color:var(--ink);}
+.tab-btn.active{background:#e8f5ef;color:var(--primary);font-weight:600;}
+.tab-btn svg{flex-shrink:0;opacity:.7;}
+.tab-btn.active svg{opacity:1;}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--hairline);font-size:11px;color:var(--muted);}
+.sidebar-footer #last-updated{display:block;margin-bottom:4px;}
+
+/* Status Bar */
+.status-bar{background:var(--canvas-elevated);border-bottom:1px solid var(--hairline);padding:6px var(--md);display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:500;color:var(--muted);min-height:36px;}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin-right:var(--xxs);vertical-align:middle;}
+.dot.ok{background:var(--success);}
+.dot.warn{background:var(--warning);}
+.dot.err{background:var(--danger);}
+
+/* Month selector */
+.month-selector{display:flex;align-items:center;gap:8px;}
+.month-selector label{font-size:11px;font-weight:600;color:var(--muted);}
+.month-selector select{background:var(--canvas);border:1px solid var(--hairline);color:var(--ink);padding:4px 10px;font-family:inherit;font-size:12px;border-radius:var(--radius-sm);cursor:pointer;font-weight:600;}
+.month-selector select:focus{outline:none;border-color:var(--primary);}
+
+/* Upload Zone */
+.upload-zone{margin:var(--md);border:2px dashed var(--primary);border-radius:var(--radius);padding:var(--lg) var(--md);text-align:center;background:#f0fdf8;cursor:pointer;transition:border-color .2s,background .2s;}
+.upload-zone:hover{border-color:var(--primary-active);background:#e6faf3;}
+.upload-zone input{display:none;}
+.btn-primary{display:inline-block;background:var(--primary);color:var(--on-primary);border:none;padding:10px 24px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-radius:var(--radius-sm);transition:background .15s;}
+.btn-primary:hover{background:#0f9488;}
+
+/* Page wrap */
+.page-wrap{margin-left:210px;flex:1;min-width:0;display:flex;flex-direction:column;min-height:100vh;}
+.main{padding:var(--md);max-width:1440px;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* Section label */
+.section-label{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:var(--xxs);}
+
+/* KPI cards */
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:var(--xs);}
+.kpi-card{background:var(--canvas-elevated);padding:var(--sm) var(--xs);border-radius:var(--radius);border:1px solid var(--hairline);border-top:3px solid var(--hairline);box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.kpi-card.good{border-top-color:var(--success);}
+.kpi-card.warn{border-top-color:var(--warning);}
+.kpi-card.hi{border-top-color:var(--primary);}
+.kpi-label{font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.kpi-value{font-size:28px;font-weight:600;letter-spacing:-.5px;color:var(--ink);line-height:1.1;}
+.kpi-unit{font-size:14px;font-weight:400;color:var(--body);}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+
+/* Chart grid */
+.chart-row{display:grid;gap:12px;margin-bottom:12px;}
+.two-col{grid-template-columns:1fr 1fr;}
+.one-col{grid-template-columns:1fr;}
+.chart-card{background:var(--canvas-elevated);padding:var(--sm);border-radius:var(--radius);border:1px solid var(--hairline);box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.chart-title{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:2px;}
+.chart-sub{font-size:12px;color:var(--body);margin-bottom:var(--sm);}
+.chart-wrap{position:relative;}
+
+/* Filter row */
+.filter-row{display:flex;gap:var(--xxs);margin-bottom:var(--xs);flex-wrap:wrap;}
+.filter-select{background:var(--canvas-elevated);border:1px solid var(--hairline);color:var(--ink);padding:7px var(--xs);font-family:inherit;font-size:13px;border-radius:var(--radius-sm);cursor:pointer;transition:border-color .15s;}
+.filter-select:focus{outline:none;border-color:var(--primary);}
+
+/* Data table */
+.tbl-wrap{overflow:auto;max-height:420px;}
+table.dt{width:100%;border-collapse:collapse;font-size:12px;}
+table.dt th{padding:10px var(--xs);font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--hairline);position:sticky;top:0;background:var(--canvas-elevated);}
+table.dt td{padding:9px var(--xs);border-bottom:1px solid var(--hairline);color:var(--body);white-space:nowrap;}
+table.dt td:first-child{color:var(--ink);font-weight:500;}
+table.dt tr:hover td{background:#f0f6f3;}
+table.dt .row-highlight td{background:#f0f9f5;}
+table.dt .row-bold td{font-weight:700;color:var(--ink);}
+table.dt .row-sub td{color:var(--muted);font-size:11px;}
+table.dt .row-sub td:first-child{padding-left:28px;}
+
+/* Badges */
+.badge{display:inline-block;padding:3px 9px;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;border-radius:9999px;}
+.badge-open{background:#fef3c7;color:#92400e;}
+.badge-paid{background:#d1fae5;color:#065f46;}
+.badge-actual{background:#e0f2fe;color:#0369a1;}
+.badge-fcst{background:#f3e8ff;color:#6b21a8;}
+
+/* Responsive */
+@media(max-width:1100px){.kpi-row{grid-template-columns:repeat(3,1fr);}.two-col{grid-template-columns:1fr;}}
+@media(max-width:768px){.sidebar{width:64px;}.sidebar-brand .nav-wordmark,.sidebar-brand .nav-sub,.tab-btn span{display:none;}.page-wrap{margin-left:64px;}.tab-btn{justify-content:center;padding:10px;}}
+@media(max-width:640px){.kpi-row{grid-template-columns:1fr 1fr;}.kpi-value{font-size:22px;}}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="nav-mark">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+        <polygon points="10,2 18,7 18,13 10,18 2,13 2,7" fill="white" opacity=".9"/>
+      </svg>
+    </div>
+    <div>
+      <div class="nav-wordmark">CS WIND America</div>
+      <div class="nav-sub">Financial Dashboard</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <button class="tab-btn active" onclick="switchTab('earnings')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+        <polyline points="17 6 23 6 23 12"/>
+      </svg>
+      <span>Earnings &amp; Outlook</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('fs')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+      </svg>
+      <span>Financials</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('vendor')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      <span>Vendor Payments</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('projects')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+      </svg>
+      <span>Projects</span>
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <span id="last-updated">—</span>
+    <div><span class="dot" id="sdot"></span><span id="stxt">Initializing…</span></div>
+  </div>
+</aside>
+
+<!-- Page Wrap -->
+<div class="page-wrap">
+
+<!-- Status Bar -->
+<div class="status-bar">
+  <div style="color:var(--muted)" id="sinfo"></div>
+  <div class="month-selector">
+    <label>Month</label>
+    <select id="global-month" onchange="onGlobalMonthChange()">
+      <option value="">All / Latest</option>
+    </select>
+  </div>
+</div>
+
+<!-- Upload Zone -->
+<div class="upload-zone" id="upload-zone"
+     onclick="document.getElementById('fi').click()"
+     ondragover="event.preventDefault()"
+     ondrop="handleDrop(event)">
+  <input type="file" id="fi" accept=".xlsx,.xls" onchange="handleFiles(this.files)">
+  <div style="font-size:40px;color:var(--primary);margin-bottom:var(--xs)">⬆</div>
+  <div style="font-size:18px;font-weight:600;color:var(--ink);margin-bottom:var(--xxs)">dashboard_data.xlsx 파일을 여기에 드롭하세요</div>
+  <div style="font-size:12px;color:var(--body);margin-bottom:var(--sm)">
+    또는 아래 버튼을 클릭하여 파일을 선택하세요<br>
+    <span style="color:var(--muted)">(VBA 매크로 실행 시 자동 생성 — FS / Vendor / Project 시트 포함)</span>
+  </div>
+  <button class="btn-primary" onclick="event.stopPropagation();document.getElementById('fi').click()">Select File</button>
+</div>
+
+<main class="main">
+
+<!-- TAB 1: Financials -->
+<div id="tab-fs" class="tab-content">
+  <div class="section-label" style="margin-bottom:var(--xs)">Key Financial Ratios</div>
+  <div class="kpi-row" id="fs-kpis">
+    <div class="kpi-card" id="kc-debt"><div class="kpi-label">Debt-to-Equity</div><div class="kpi-value kv">—<span class="kpi-unit">%</span></div><div class="kpi-sub">Total Liabilities / Equity</div></div>
+    <div class="kpi-card" id="kc-cur"><div class="kpi-label">Current Ratio</div><div class="kpi-value kv">—<span class="kpi-unit">%</span></div><div class="kpi-sub">Current Assets / Current Liabilities</div></div>
+    <div class="kpi-card" id="kc-quick"><div class="kpi-label">Quick Ratio</div><div class="kpi-value kv">—<span class="kpi-unit">%</span></div><div class="kpi-sub">(Cash + Receivables) / Current Liabilities</div></div>
+    <div class="kpi-card" id="kc-op"><div class="kpi-label">Operating Margin</div><div class="kpi-value kv">—<span class="kpi-unit">%</span></div><div class="kpi-sub">Operating Income / Sales</div></div>
+    <div class="kpi-card" id="kc-net"><div class="kpi-label">Net Margin</div><div class="kpi-value kv">—<span class="kpi-unit">%</span></div><div class="kpi-sub">Net Income / Sales</div></div>
+  </div>
+  <div class="chart-row two-col">
+    <div class="chart-card"><div class="chart-title">Capital Structure</div><div class="chart-sub">Total Assets Breakdown (USD M)</div><div class="chart-wrap" style="height:280px"><canvas id="cc-capital"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Current Assets Composition</div><div class="chart-sub">Current Assets Breakdown (Selected Month)</div><div class="chart-wrap" style="height:280px"><canvas id="cc-ca-donut"></canvas></div></div>
+  </div>
+  <div class="chart-row one-col">
+    <div class="chart-card"><div class="chart-title">Debt-to-Equity &amp; Current Ratio — Monthly Trend</div><div class="chart-sub">Ratio trend over time</div><div class="chart-wrap" style="height:220px"><canvas id="cc-ratio-trend"></canvas></div></div>
+  </div>
+  <div class="chart-row two-col">
+    <div class="chart-card"><div class="chart-title">Revenue &amp; Profit Trend</div><div class="chart-sub">Revenue (Bar), Operating Income &amp; Net Income (Line), USD M</div><div class="chart-wrap" style="height:280px"><canvas id="cc-revenue"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Cost Structure Waterfall</div><div class="chart-sub">Revenue → Net Income decomposition (Selected Month, USD M)</div><div class="chart-wrap" style="height:280px"><canvas id="cc-waterfall"></canvas></div></div>
+  </div>
+  <div class="chart-row two-col">
+    <div class="chart-card"><div class="chart-title">Manufacturing Cost Breakdown</div><div class="chart-sub">Material / Labor / Overhead (Selected Month)</div><div class="chart-wrap" style="height:260px"><canvas id="cc-mfg"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Debt Composition</div><div class="chart-sub">Short-term vs Long-term Debt (USD M)</div><div class="chart-wrap" style="height:260px"><canvas id="cc-debt-comp"></canvas></div></div>
+  </div>
+  <div class="chart-row one-col">
+    <div class="chart-card">
+      <div class="chart-title">Working Capital</div>
+      <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:4px">
+        <div class="chart-sub" style="margin-bottom:0">Trade Receivables + Inventories − Trade Payables (USD M)</div>
+        <div id="wc-value" style="font-size:15px;font-weight:700;"></div>
+      </div>
+      <div class="chart-wrap" style="height:220px"><canvas id="cc-wc"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-row two-col">
+    <div class="chart-card">
+      <div class="chart-title">P&amp;L Waterfall</div>
+      <div class="chart-sub">Revenue → Net Income (Selected Month, USD M)</div>
+      <div class="chart-wrap" style="height:280px"><canvas id="pl-waterfall"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Monthly P&amp;L Trend</div>
+      <div class="chart-sub">Sales (bar), Gross Profit / OI / Net Income (line) — USD M</div>
+      <div class="chart-wrap" style="height:280px"><canvas id="pl-trend"></canvas></div>
+    </div>
+  </div>
+</div><!-- /tab-fs -->
+
+
+<!-- TAB 2: Earnings & Outlook -->
+<div id="tab-earnings" class="tab-content active">
+
+  <div class="section-label" style="margin-bottom:var(--xs)">P&amp;L Income Statement</div>
+  <div class="kpi-row" id="pl-kpis">
+    <div class="kpi-card hi" id="pkc-sales"><div class="kpi-label">Sales</div><div class="kpi-value kv">—<span class="kpi-unit">M</span></div><div class="kpi-sub">USD M</div></div>
+    <div class="kpi-card" id="pkc-gp"><div class="kpi-label">Gross Profit</div><div class="kpi-value kv">—<span class="kpi-unit">M</span></div><div class="kpi-sub">GP Margin: —%</div></div>
+    <div class="kpi-card" id="pkc-oi"><div class="kpi-label">Operating Income</div><div class="kpi-value kv">—<span class="kpi-unit">M</span></div><div class="kpi-sub">OI Margin: —%</div></div>
+    <div class="kpi-card" id="pkc-ebitda"><div class="kpi-label">EBITDA</div><div class="kpi-value kv">—<span class="kpi-unit">M</span></div><div class="kpi-sub">EBITDA Margin: —%</div></div>
+    <div class="kpi-card" id="pkc-ni"><div class="kpi-label">Net Income</div><div class="kpi-value kv">—<span class="kpi-unit">M</span></div><div class="kpi-sub">NI Margin: —%</div></div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:12px">
+    <div class="chart-title">P&amp;L Monthly Breakdown</div>
+    <div class="chart-sub">'000 USD — Actual Monthly</div>
+    <div class="tbl-wrap" style="margin-top:var(--xs);max-height:360px">
+      <table class="dt" id="pl-table">
+        <thead id="pl-thead"></thead>
+        <tbody id="pl-tbody"><tr><td colspan="15" style="text-align:center;padding:32px;color:var(--muted)">No data — select files</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-label" style="margin:var(--sm) 0 var(--xs)">Rolling Forecast — P&amp;L Summary</div>
+  <div class="chart-card">
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:var(--xxs)">
+      <div class="chart-title" id="fcst-title">Rolling Forecast</div>
+      <div class="chart-sub" id="fcst-sub" style="margin-bottom:0">'000 USD</div>
+    </div>
+    <div class="tbl-wrap" style="margin-top:var(--xs);max-height:480px;overflow-x:auto;">
+      <table class="dt" id="fcst-table" style="min-width:900px">
+        <thead id="fcst-thead"></thead>
+        <tbody id="fcst-tbody"><tr><td colspan="14" style="text-align:center;padding:32px;color:var(--muted)">No forecast data — select files</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /tab-earnings -->
+
+
+<!-- TAB 3: Vendor Payments -->
+<div id="tab-vendor" class="tab-content">
+  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:var(--xs)">
+    <div class="section-label">Vendor Payment Summary</div>
+    <div id="vendor-data-asof" style="font-size:11px;color:var(--muted)"></div>
+  </div>
+  <div class="kpi-row" id="v-kpis">
+    <div class="kpi-card" id="vkc-vendors"><div class="kpi-label">Active Vendors</div><div class="kpi-value kv">—</div><div class="kpi-sub">Vendors in view</div></div>
+    <div class="kpi-card" id="vkc-total"><div class="kpi-label">Total Invoices</div><div class="kpi-value kv">—</div><div class="kpi-sub">RE type invoices</div></div>
+    <div class="kpi-card warn" id="vkc-open"><div class="kpi-label">Open Invoices</div><div class="kpi-value kv">—</div><div class="kpi-sub">Awaiting payment</div></div>
+    <div class="kpi-card warn" id="vkc-amt"><div class="kpi-label">Outstanding Amount</div><div class="kpi-value kv">—<span class="kpi-unit">M</span></div><div class="kpi-sub">Open invoice total (USD)</div></div>
+    <div class="kpi-card" id="vkc-days"><div class="kpi-label">Avg Payment Days</div><div class="kpi-value kv">—<span class="kpi-unit">d</span></div><div class="kpi-sub">Cleared invoices only</div></div>
+  </div>
+  <div class="filter-row">
+    <select class="filter-select" id="vf-vendor" onchange="renderVendorTab()"><option value="">All Vendors</option></select>
+    <select class="filter-select" id="vf-category" onchange="renderVendorTab()">
+      <option value="">All Categories</option>
+      <option>Steel</option><option>Flange</option>
+      <option>Internal</option><option>Door</option><option>Wire &amp; Flux</option>
+    </select>
+    <select class="filter-select" id="vf-status" onchange="renderVendorTab()">
+      <option value="">All</option><option value="OPEN">Open Only</option><option value="PAID">Paid Only</option>
+    </select>
+  </div>
+  <div class="chart-card" style="margin-bottom:12px">
+    <div class="chart-title">Open Invoice Summary by Vendor</div>
+    <div class="chart-sub">Open invoices only — outstanding amount per vendor</div>
+    <div class="tbl-wrap" style="margin-top:var(--xs);max-height:220px">
+      <table class="dt" id="v-open-summary">
+        <thead><tr><th>Vendor</th><th>Category</th><th style="text-align:right">Outstanding (USD)</th></tr></thead>
+        <tbody id="v-open-summary-body"><tr><td colspan="3" style="text-align:center;padding:24px;color:var(--muted)">No data</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="chart-row one-col">
+    <div class="chart-card"><div class="chart-title">Avg Payment Days by Vendor</div><div class="chart-sub">Cleared invoices only</div><div class="chart-wrap" style="height:280px"><canvas id="vc-avgdays"></canvas></div></div>
+  </div>
+  <div class="chart-row one-col">
+    <div class="chart-card"><div class="chart-title">Open Invoice Aging</div><div class="chart-sub">Outstanding amount by age bucket — vendor on Y-axis (USD M)</div><div class="chart-wrap" style="height:300px"><canvas id="vc-aging"></canvas></div></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Invoice Detail</div>
+    <div class="chart-sub">Max 10 invoices per vendor, sorted by amount descending.</div>
+    <div class="tbl-wrap" style="margin-top:var(--xs)">
+      <table class="dt" id="vtable">
+        <thead><tr><th>Vendor</th><th>Category</th><th>Document No</th><th>Doc. Date</th><th>Posting Date</th><th>Clearing Date</th><th>Payment Days</th><th style="text-align:right">Amount (USD)</th><th>Status</th></tr></thead>
+        <tbody id="vtbody"><tr><td colspan="9" style="text-align:center;padding:32px;color:var(--muted)">No data</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div><!-- /tab-vendor -->
+
+
+<!-- TAB 4: Projects -->
+<div id="tab-projects" class="tab-content">
+  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:var(--xs)">
+    <div class="section-label">Project Profitability</div>
+    <div id="proj-asof" style="font-size:11px;color:var(--muted)"></div>
+  </div>
+  <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)" id="proj-kpis">
+    <div class="kpi-card" id="pkc-rev"><div class="kpi-label">Total Revenue</div><div class="kpi-value kv">—<span class="kpi-unit">M</span></div><div class="kpi-sub">Latest month (USD)</div></div>
+    <div class="kpi-card" id="pkc-cost"><div class="kpi-label">Total Cost</div><div class="kpi-value kv">—<span class="kpi-unit">M</span></div><div class="kpi-sub">Latest month (USD)</div></div>
+    <div class="kpi-card" id="pkc-pl"><div class="kpi-label">Profit &amp; Loss</div><div class="kpi-value kv">—<span class="kpi-unit">M</span></div><div class="kpi-sub">Latest month (USD)</div></div>
+    <div class="kpi-card" id="pkc-margin"><div class="kpi-label">Overall Margin</div><div class="kpi-value kv">—<span class="kpi-unit">%</span></div><div class="kpi-sub">P&amp;L / Revenue</div></div>
+  </div>
+  <div class="filter-row">
+    <select class="filter-select" id="pf-month" onchange="renderProjectsTab()"><option value="">All Months</option></select>
+    <select class="filter-select" id="pf-customer" onchange="renderProjectsTab()"><option value="">All Customers</option></select>
+    <select class="filter-select" id="pf-project" onchange="renderProjectsTab()"><option value="">All Projects</option></select>
+  </div>
+  <div class="chart-row two-col">
+    <div class="chart-card"><div class="chart-title">Revenue &amp; P&amp;L by Project</div><div class="chart-sub">USD M — latest month (or selected month)</div><div class="chart-wrap" style="height:280px"><canvas id="pc-revpl"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Margin % by Project</div><div class="chart-sub">P&amp;L / Revenue per project</div><div class="chart-wrap" style="height:280px"><canvas id="pc-margin"></canvas></div></div>
+  </div>
+  <div class="chart-row one-col">
+    <div class="chart-card"><div class="chart-title">Monthly Revenue &amp; Profit Trend</div><div class="chart-sub">All projects combined — USD M</div><div class="chart-wrap" style="height:220px"><canvas id="pc-trend"></canvas></div></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Project Detail</div>
+    <div class="chart-sub">All months — sorted by month desc</div>
+    <div class="tbl-wrap" style="margin-top:var(--xs)">
+      <table class="dt" id="ptable">
+        <thead><tr><th>Month</th><th>Customer</th><th>Project</th><th style="text-align:right">Qty</th><th style="text-align:right">Revenue (USD)</th><th style="text-align:right">Cost (USD)</th><th style="text-align:right">P&amp;L (USD)</th><th style="text-align:right">Margin %</th></tr></thead>
+        <tbody id="ptbody"><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">No data</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div><!-- /tab-projects -->
+
+</main>
+</div><!-- /page-wrap -->
+
+<script>
+/* ── CONFIG ─────────────────────────────── */
+// Cloudflare Worker URL — set this to your worker if hosting via R2
+// Leave empty '' to skip (file:// mode or Cloudflare Pages serving files directly)
+const WORKER_URL = 'https://tiny-dew-e513.leeway-id.workers.dev/';
+
+const VENDOR_CFG = {
+  '103270':{ name:'Leeco Steel',         cat:'Steel'      },
+  '201203':{ name:'Frisa Forjados',       cat:'Flange'     },
+  '201531':{ name:'Camzone Wind Power',   cat:'Internal'   },
+  '103272':{ name:'Proinlosa Energy',     cat:'Internal'   },
+  '103271':{ name:'Hempel',              cat:'Internal'   },
+  '201618':{ name:'Anand Engineering',   cat:'Internal'   },
+  '201530':{ name:'Power Climber Poland', cat:'Internal'   },
+  '103274':{ name:'Millerbernd Mfg',     cat:'Door'       },
+  '103287':{ name:'The Esab Group',      cat:'Wire & Flux'}
+};
+const CAT_COLOR = { 'Steel':'#e07878','Flange':'#7eb5d4','Internal':'#5db88a','Door':'#f0c060','Wire & Flux':'#b09ad4' };
+const PALETTE = ['#e07878','#7eb5d4','#5db88a','#f0c060','#b09ad4','#f0a855','#6ecfa8','#88bde0','#f5a0a0'];
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+/* ── STATE ──────────────────────────────── */
+let fsRows        = [];   // [{Month, ...BS/PL fields}, ...]
+let vendorRows    = [];
+let projectRows   = [];
+let forecastData  = null; // parsed forecast object (from standalone FCST files)
+let forecastRawData = null; // raw 2D array from Forecast sheet in dashboard_data.xlsx
+let charts        = {};
+
+/* ── BOOT ───────────────────────────────── */
+// Show upload zone immediately for file:// — before any JS can fail
+(function earlyInit() {
+  if (typeof location !== 'undefined' && location.protocol === 'file:') {
+    const uz = document.getElementById('upload-zone');
+    if (uz) uz.style.display = 'block';
+  }
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Set up Chart.js defaults — guard in case CDN is blocked/slow
+  if (typeof Chart !== 'undefined') {
+    try {
+      Chart.defaults.color        = '#5a7268';
+      Chart.defaults.borderColor  = '#dde8e2';
+      Chart.defaults.font.family  = "'Inter',system-ui,sans-serif";
+      Chart.defaults.font.size    = 12;
+      Chart.defaults.plugins.legend.labels.boxWidth = 12;
+      Chart.defaults.plugins.legend.labels.padding  = 12;
+    } catch(e) { console.warn('Chart.js defaults failed:', e); }
+    try {
+      Chart.register(ChartDataLabels);
+      Chart.defaults.plugins.datalabels.display = false;
+    } catch(e) { console.warn('chartjs-plugin-datalabels not available', e); }
+  } else {
+    console.warn('Chart.js not loaded — charts will not render');
+    status('err', 'Chart.js 로드 실패 — 인터넷 연결을 확인하세요');
+  }
+
+  try { populateVendorFilter(); } catch(e) { console.warn('populateVendorFilter failed:', e); }
+
+  if (location.protocol === 'file:') {
+    document.getElementById('upload-zone').style.display = 'block';
+    status('warn','파일 선택 필요 — FS.xlsx 또는 월별 Closing Pkg 파일을 위 업로드 영역에 선택하세요');
+    document.getElementById('sinfo').textContent = 'file:// mode';
+  } else {
+    fetchAllFiles();
+    setInterval(fetchAllFiles, 60000);
+    document.getElementById('sinfo').textContent = 'Auto-refreshes every 60 s';
+  }
+});
+
+/* ── FILE FETCH (http/https) ─────────────── */
+async function fetchAllFiles() {
+  status('', 'Loading files…');
+
+  // dashboard_data.xlsx (VBA RunMerge로 생성한 통합파일) 단일 파일만 fetch
+  const candidates = [
+    { name:'dashboard_data.xlsx', type:'merged', base:'./' }
+  ];
+
+
+  const seen = new Set();
+  const results = await Promise.allSettled(
+    candidates.map(async c => {
+      const url = c.base + c.name + '?t=' + Date.now();
+      const r = await fetch(url, { cache:'no-store' });
+      if (!r.ok) throw new Error('404');
+      const buf = await r.arrayBuffer();
+      // Deduplicate: if we already got this file from another base, skip
+      const key = c.name + '|' + buf.byteLength;
+      if (seen.has(key)) throw new Error('dup');
+      seen.add(key);
+      return { buf, name: c.name, type: c.type };
+    })
+  );
+  mergeAndRender(results.filter(r => r.status==='fulfilled').map(r => r.value));
+}
+
+/* ── FILE DROP / UPLOAD (file:// mode) ─── */
+function handleDrop(e) { e.preventDefault(); handleFiles(e.dataTransfer.files); }
+function handleFiles(fileList) {
+  if (!fileList || !fileList.length) return;
+  status('', `Loading ${fileList.length} file(s)…`);
+  const promises = Array.from(fileList).map(f => new Promise((res,rej) => {
+    const fr = new FileReader();
+    fr.onload  = ev => res({ buf: ev.target.result, name: f.name, type: guessType(f.name) });
+    fr.onerror = () => rej(f.name);
+    fr.readAsArrayBuffer(f);
+  }));
+  Promise.allSettled(promises).then(results =>
+    mergeAndRender(results.filter(r=>r.status==='fulfilled').map(r=>r.value))
+  );
+}
+
+function guessType(name) {
+  const n = name.toUpperCase();
+  if (n.startsWith('DASHBOARD_DATA') || n === 'DASHBOARD_DATA.XLSX') return 'merged';
+  if (n.includes('CLOSING PKG') || n.includes('CSWAM NEW MONTHLY')) return 'closing';
+  if (n.includes('ROLLING FCST') || (n.includes('FCST') && n.includes('CSWAM'))) return 'forecast';
+  if (n.startsWith('FS'))      return 'fs';
+  if (n.startsWith('VENDOR'))  return 'vendor';
+  if (n.startsWith('PROJECT')) return 'project';
+  return 'unknown';
+}
+
+/* ══════════════════════════════════════════
+   CLOSING PACKAGE PARSER
+══════════════════════════════════════════ */
+function parseClosingPkg(wb, filename) {
+  // Year from filename: CSWAM New Monthly Closing Pkg_2026.07.xlsx
+  const ym = filename.match(/_(\d{4})\.(\d{2})\.xlsx/i);
+  const year = ym ? parseInt(ym[1]) : new Date().getFullYear();
+
+  const plSheetName = wb.SheetNames.find(n => n.includes('1-4'));
+  const bsSheetName = wb.SheetNames.find(n => n.includes('1-5'));
+  if (!plSheetName || !bsSheetName) return [];
+
+  const plRows = XLSX.utils.sheet_to_json(wb.Sheets[plSheetName], { header:1, defval:null });
+  const bsRows = XLSX.utils.sheet_to_json(wb.Sheets[bsSheetName], { header:1, defval:null });
+
+  // Find month col start in P&L sheet (row 2, value 'Jan')
+  let plMonthStart = 4;
+  if (plRows[1]) for (let ci = 0; ci < plRows[1].length; ci++) { if (plRows[1][ci]==='Jan'){plMonthStart=ci;break;} }
+
+  // Find P&L rows by label in col B (idx 1)
+  function plRow(label) {
+    for (let ri=0;ri<plRows.length;ri++) if(plRows[ri]&&plRows[ri][1]===label) return ri;
+    return -1;
+  }
+  function plSubRow(label) {
+    for (let ri=0;ri<plRows.length;ri++) if(plRows[ri]&&(plRows[ri][2]===label||plRows[ri][2]===(label+' '))) return ri;
+    return -1;
+  }
+
+  const rSales = plRow('Sales');
+  const rCOGS  = plRow('COGS');
+  const rMat   = plSubRow('Material') !== -1 ? plSubRow('Material') : plSubRow('Material ');
+  const rLab   = plSubRow('Labor');
+  const rOvh   = plSubRow('Overhead');
+  const rGP    = plRow('Gross Profit');
+  const rSGA   = plRow('SG&A');
+  const rOI    = plRow('Operating Income');
+  const rEBIT  = plRow('EBITDA');
+  const rNOI   = plRow('Non-Operating Income');
+  const rNOE   = plRow('Non-Operating Expense');
+  const rNI    = plRow('Net Income');
+
+  // Find BS month col start (row 7, value 'Jan')
+  let bsMonthStart = 4;
+  if (bsRows[6]) for (let ci=0;ci<bsRows[6].length;ci++){if(bsRows[6][ci]==='Jan'){bsMonthStart=ci;break;}}
+
+  // Find BS SUM rows by English label in col D (idx 3)
+  function bsSumRow(label) {
+    for (let ri=0;ri<bsRows.length;ri++) if(bsRows[ri]&&bsRows[ri][1]==='SUM'&&bsRows[ri][3]===label) return ri;
+    return -1;
+  }
+  // Find BS rows by GCoA code in col B (idx 1)
+  function bsGCoARow(code) {
+    for (let ri=0;ri<bsRows.length;ri++) if(bsRows[ri]&&bsRows[ri][1]===code) return ri;
+    return -1;
+  }
+
+  const bRCA  = bsSumRow('I. Current Assets');
+  const bRTA  = bsSumRow('Total Assets');
+  const bRCL  = bsSumRow('Ⅰ. Current liabilities');
+  const bRNCL = bsSumRow('Ⅲ. Non-current liability');
+  const bRInv = bsSumRow('(2) Inventories');
+  const bRCash= bsGCoARow(110100);
+  const bRAR  = bsGCoARow(110500);
+  const bRAP  = bsGCoARow(210200);
+  const bRSTD = bsGCoARow(210500);
+  const bRLTD = bsGCoARow(230300);
+
+  const getV = (rows, ri, ci) => (ri>=0 && rows[ri] && rows[ri][ci]!=null) ? (Number(rows[ri][ci])||0) : 0;
+
+  const results = [];
+  for (let mi = 0; mi < 12; mi++) {
+    const plCI = plMonthStart + mi;
+    const bsCI = bsMonthStart + mi;
+    const sales = getV(plRows, rSales, plCI);
+    if (!sales || Math.abs(sales) < 1) continue; // skip empty months
+
+    const curLiab  = getV(bsRows, bRCL,  bsCI);
+    const nonCurL  = getV(bsRows, bRNCL, bsCI);
+    const totalLiab= curLiab + nonCurL;
+    const totalAssets = getV(bsRows, bRTA, bsCI);
+    const equity   = totalAssets - totalLiab;
+
+    results.push({
+      Month:           `${year}-${String(mi+1).padStart(2,'0')}`,
+      // P&L
+      Sales:           sales,
+      COGS:            getV(plRows, rCOGS, plCI),
+      MaterialCost:    getV(plRows, rMat,  plCI),
+      LaborCost:       getV(plRows, rLab,  plCI),
+      MfgOverhead:     getV(plRows, rOvh,  plCI),
+      GrossProfit:     getV(plRows, rGP,   plCI),
+      SGAExpenses:     getV(plRows, rSGA,  plCI),
+      OperatingProfit: getV(plRows, rOI,   plCI),
+      EBITDA:          getV(plRows, rEBIT, plCI),
+      NonOpIncome:     getV(plRows, rNOI,  plCI),
+      NonOpExpense:    getV(plRows, rNOE,  plCI),
+      NetIncome:       getV(plRows, rNI,   plCI),
+      // BS
+      CurrentAssets:    getV(bsRows, bRCA,  bsCI),
+      TotalAssets:      totalAssets,
+      CurrentLiabilities: curLiab,
+      TotalLiabilities: totalLiab,
+      Equity:           equity,
+      Cash:             getV(bsRows, bRCash, bsCI),
+      TradeReceivables: getV(bsRows, bRAR,  bsCI),
+      Inventories:      getV(bsRows, bRInv, bsCI),
+      TradePayables:    getV(bsRows, bRAP,  bsCI),
+      ShortTermDebt:    getV(bsRows, bRSTD, bsCI),
+      LongTermDebt:     getV(bsRows, bRLTD, bsCI),
+    });
+  }
+  return results;
+}
+
+/* ══════════════════════════════════════════
+   FORECAST PARSER
+══════════════════════════════════════════ */
+function parseForecast(wb, filename) {
+  const sheetName = wb.SheetNames.find(n => n.includes('1.P&L_Summary')) ||
+                    wb.SheetNames.find(n => n.toLowerCase().includes('p&l_summary')) ||
+                    wb.SheetNames.find(n => n.toLowerCase().includes('p&l')) ||
+                    wb.SheetNames.find(n => n.toLowerCase().includes('summary')) ||
+                    wb.SheetNames[0];
+  if (!sheetName) return null;
+
+  const rawRows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header:1, defval:null });
+
+  // Find row with 'Jan' followed by 'Feb' to determine month col start (robust)
+  let monthStart = -1;
+  for (let ri=0;ri<rawRows.length && monthStart===-1;ri++) {
+    if (!rawRows[ri]) continue;
+    for (let ci=0;ci<rawRows[ri].length-1;ci++) {
+      if (rawRows[ri][ci]==='Jan' && rawRows[ri][ci+1]==='Feb') { monthStart=ci; break; }
+    }
+  }
+  if (monthStart===-1) {
+    // fallback: find any row with 'Jan'
+    for (let ri=0;ri<rawRows.length && monthStart===-1;ri++) {
+      if (!rawRows[ri]) continue;
+      for (let ci=0;ci<rawRows[ri].length;ci++) {
+        if (rawRows[ri][ci]==='Jan') { monthStart=ci; break; }
+      }
+    }
+  }
+  if (monthStart===-1) monthStart = 2;
+
+  // Find rows by label — try columns 0-3 for flexibility
+  function findRow(label) {
+    const trimLabel = String(label).trim().toLowerCase();
+    for (let ri=0;ri<rawRows.length;ri++) {
+      if (!rawRows[ri]) continue;
+      for (let ci=0;ci<=3;ci++) {
+        const v = rawRows[ri][ci];
+        if (v != null && String(v).trim().toLowerCase() === trimLabel) return ri;
+      }
+    }
+    return -1;
+  }
+
+  // Which months are actual vs forecast — detect boolean or text flags
+  let isActualRow = -1;
+  for (let ri=0;ri<rawRows.length;ri++) {
+    const row = rawRows[ri];
+    if (!row) continue;
+    const v = row[monthStart];
+    if (v===true || v===false || v==='TRUE' || v==='FALSE' || v==='Actual' || v==='Forecast' || v==='A' || v==='F') {
+      isActualRow=ri; break;
+    }
+  }
+
+  const isActual = MONTH_NAMES.map((m,mi) => {
+    if (isActualRow < 0) return false;
+    const v = rawRows[isActualRow][monthStart+mi];
+    return v===true || v==='TRUE' || v==='Actual' || v==='A';
+  });
+
+  // Extract filename label
+  const fcstMatch = filename.match(/FCST\s*(\d+\+\d+)/i);
+  const fcstLabel = fcstMatch ? fcstMatch[1] : '';
+
+  // Year from data
+  let dataYear = new Date().getFullYear();
+  for (let ri=0;ri<10;ri++) {
+    if (rawRows[ri]) for (const v of rawRows[ri]) {
+      if (v && String(v).match(/^\d{4}$/)) { dataYear=parseInt(v); }
+    }
+  }
+
+  const ROWS_CONFIG = [
+    { label:'# Sec',              key:'Sec',    rowLabel:'# Sec',                  bold:false, indent:false },
+    { label:'Sales',              key:'Sales',  rowLabel:'Sales Rev',              bold:true,  indent:false },
+    { label:'COGS',               key:'COGS',   rowLabel:'COGS',                   bold:true,  indent:false },
+    { label:'  Material',         key:'Mat',    rowLabel:'Material',               bold:false, indent:true  },
+    { label:'  Scrap',            key:'Scrap',  rowLabel:'Scrap',                  bold:false, indent:true  },
+    { label:'  Labor',            key:'Lab',    rowLabel:'Labor',                  bold:false, indent:true  },
+    { label:'  Overhead',         key:'Ovh',    rowLabel:'Overhead',               bold:false, indent:true  },
+    { label:'Gross Profit',       key:'GP',     rowLabel:'Gross Profit',           bold:true,  indent:false },
+    { label:'SG&A',               key:'SGA',    rowLabel:'SG&A',                   bold:false, indent:false },
+    { label:'Operating Income',   key:'OI',     rowLabel:'O.I(Exc.HQ)',            bold:true,  indent:false },
+    { label:'EBITDA',             key:'EBITDA', rowLabel:'EBITDA(Inc.HQ)',         bold:true,  indent:false },
+    { label:'Non-Op Income',      key:'NOI',    rowLabel:'Non.Operating Income',   bold:false, indent:false },
+    { label:'Non-Op Expense',     key:'NOE',    rowLabel:'Non.Operating Expenses', bold:false, indent:false },
+    { label:'Net Income',         key:'NI',     rowLabel:'Net Income(Exc.HQ)',     bold:true,  indent:false },
+  ];
+
+  const rowData = {};
+  ROWS_CONFIG.forEach(cfg => {
+    const ri = findRow(cfg.rowLabel);
+    rowData[cfg.key] = {
+      ri,
+      label: cfg.label,
+      bold: cfg.bold,
+      indent: cfg.indent,
+      values: MONTH_NAMES.map((m, mi) => ri>=0 && rawRows[ri] ? (Number(rawRows[ri][monthStart+mi])||0) : 0),
+      total:  ri>=0 && rawRows[ri] ? (Number(rawRows[ri][monthStart+12])||0) : 0,
+    };
+  });
+
+  return { fcstLabel, dataYear, isActual, rowData, rowsConfig: ROWS_CONFIG };
+}
+
+/* ══════════════════════════════════════════
+   MERGE & RENDER
+══════════════════════════════════════════ */
+function mergeAndRender(found) {
+  const newFs=[], newVendor=[], newProject=[];
+  let   newForecast=null;
+  const loaded=[], errors=[];
+
+  for (const f of found) {
+    try {
+      const wb = XLSX.read(f.buf, { type:'array', cellDates:true });
+      if (f.type==='merged') {
+        const m = parseMergedFile(wb);
+        newFs.push(...m.fs);
+        newVendor.push(...m.vendor);
+        newProject.push(...m.project);
+        if (m.forecast) forecastRawData = m.forecast;
+        loaded.push(f.name);
+      } else if (f.type==='closing') {
+        newFs.push(...parseClosingPkg(wb, f.name));
+        loaded.push(f.name);
+      } else if (f.type==='forecast') {
+        const fc = parseForecast(wb, f.name);
+        if (fc && !newForecast) newForecast = fc; // use first (most recent) found
+        loaded.push(f.name);
+      } else if (f.type==='fs') {
+        newFs.push(...parseFSFileLegacy(wb, f.name));
+        loaded.push(f.name);
+      } else if (f.type==='vendor') {
+        newVendor.push(...parseVendorFile(wb));
+        loaded.push(f.name);
+      } else if (f.type==='project') {
+        newProject.push(...parseProjectFile(wb));
+        loaded.push(f.name);
+      }
+    } catch(e) {
+      errors.push(f.name);
+      console.warn('Parse failed:', f.name, e);
+    }
+  }
+
+  // Deduplicate FS rows by Month (later file wins)
+  const fsMap = {};
+  for (const r of newFs) if (r.Month) fsMap[r.Month]=r;
+  fsRows = Object.values(fsMap).sort((a,b)=>String(a.Month).localeCompare(String(b.Month)));
+
+  // Deduplicate vendor rows
+  const vMap={};
+  for (const r of newVendor) {
+    const key=String(r.DocumentNo||'').trim(); if(!key) continue;
+    const ex=vMap[key];
+    if (!ex||(isCleared(r)&&!(isCleared(ex)))) vMap[key]=r;
+  }
+  vendorRows=Object.values(vMap);
+
+  // Deduplicate project rows
+  const pMap={};
+  for (const r of newProject) pMap[`${r.Month}|${r.Customer}|${r.Project}`]=r;
+  projectRows=Object.values(pMap).sort((a,b)=>String(a.Month).localeCompare(String(b.Month)));
+
+  if (newForecast) forecastData=newForecast;
+
+  const ts=new Date();
+  document.getElementById('last-updated').textContent=ts.toLocaleDateString('en-US')+' '+ts.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+
+  // Populate month dropdown — all unique months from FS data, sorted
+  const months = [...new Set(fsRows.map(r=>r.Month).filter(Boolean))].sort();
+  populateMonthDropdown(months);
+
+  const errNote=errors.length?` | ${errors.length} error(s)`:'';
+  status('ok',`${loaded.length} file(s) loaded — FS ${fsRows.length} month(s), Vendor ${vendorRows.length} record(s)${errNote}`);
+
+  renderAll();
+}
+
+function renderAll() {
+  renderFSTab();
+  renderEarningsTab();
+  renderVendorTab();
+  renderProjectsTab();
+}
+
+/* ── Month selector ─────────────────────── */
+function populateMonthDropdown(months) {
+  const sel=document.getElementById('global-month');
+  const prev=sel.value;
+  // Deduplicate and sort
+  const uniqueMonths = [...new Set(months.filter(Boolean))].sort();
+  sel.innerHTML='<option value="">All / Latest</option>';
+  uniqueMonths.forEach(m=>{
+    const opt=document.createElement('option');
+    opt.value=m; opt.textContent=formatMonthLabel(m);
+    sel.appendChild(opt);
+  });
+  if (uniqueMonths.includes(prev)) sel.value=prev;
+}
+
+function formatMonthLabel(m) {
+  const [yr,mo]=m.split('-');
+  return MONTH_NAMES[parseInt(mo)-1]+' '+yr;
+}
+
+function getSelectedMonth() { return document.getElementById('global-month')?.value||''; }
+
+function getActiveRow() {
+  const sel=getSelectedMonth();
+  if (!sel && fsRows.length) return fsRows[fsRows.length-1];
+  return fsRows.find(r=>r.Month===sel)||(fsRows.length?fsRows[fsRows.length-1]:null);
+}
+
+function getDisplayRows() {
+  const sel=getSelectedMonth();
+  if (!sel) return fsRows;
+  return fsRows.filter(r=>r.Month<=sel);
+}
+
+function onGlobalMonthChange() { renderAll(); }
+
+/* ══════════════════════════════════════════
+   FINANCIALS TAB
+══════════════════════════════════════════ */
+function renderFSTab() {
+  if (!fsRows.length) return;
+  const L=getActiveRow(); if(!L) return;
+  const rows=getDisplayRows();
+  const months=rows.map(r=>r.Month);
+  // Data is in '000 USD → divide by 1000 for USD M
+  const M=v=>Math.abs(v||0)/1000;
+
+  const debtRatio    = L.Equity ? M(L.TotalLiabilities)/M(L.Equity)*100 : 0;
+  const currentRatio = L.CurrentLiabilities ? M(L.CurrentAssets)/M(L.CurrentLiabilities)*100 : 0;
+  const quickRatio   = L.CurrentLiabilities ? (M(L.Cash)+M(L.TradeReceivables))/M(L.CurrentLiabilities)*100 : 0;
+  const opMargin     = L.Sales ? L.OperatingProfit/L.Sales*100 : 0;
+  const netMargin    = L.Sales ? L.NetIncome/L.Sales*100 : 0;
+
+  setKPI('kc-debt',  debtRatio.toFixed(1),'%','Total Liabilities / Equity',  debtRatio>200?'warn':debtRatio>150?'hi':'good');
+  setKPI('kc-cur',   currentRatio.toFixed(1),'%','Current Assets / Current Liabilities', currentRatio<100?'warn':currentRatio>150?'good':'');
+  setKPI('kc-quick', quickRatio.toFixed(1),'%','(Cash + Receivables) / Current Liabilities', quickRatio<50?'warn':quickRatio>100?'good':'');
+  setKPI('kc-op',    opMargin.toFixed(1),'%','Operating Income / Sales', opMargin<0?'warn':opMargin>10?'good':'');
+  setKPI('kc-net',   netMargin.toFixed(1),'%','Net Income / Sales', netMargin<0?'warn':netMargin>5?'good':'');
+
+  // 1. Capital structure stacked bar
+  mkChart('cc-capital','bar',{
+    labels:months,
+    datasets:[
+      { label:'Short-term Debt', stack:'s', backgroundColor:'#e07878', data:rows.map(r=>M(r.ShortTermDebt||0)) },
+      { label:'Long-term Debt',  stack:'s', backgroundColor:'#c8877a', data:rows.map(r=>M(r.LongTermDebt||0)) },
+      { label:'Other Liabilities', stack:'s', backgroundColor:'#b0bcb8',
+        data:rows.map(r=>M(Math.max(0,Math.abs(r.TotalLiabilities)-Math.abs(r.ShortTermDebt||0)-Math.abs(r.LongTermDebt||0)))) },
+      { label:'Equity', stack:'s', backgroundColor:'#7eb5d4', data:rows.map(r=>M(r.Equity)) }
+    ]
+  },{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ labels:{ color:'#8fada4' } },
+      datalabels:{
+        display:true,
+        color:'#fff',
+        font:{ size:9, weight:'600' },
+        formatter:(v)=> Math.abs(v) >= 0.5 ? '$'+Number(v).toFixed(1)+'M' : null,
+        align:'center', anchor:'center'
+      },
+      tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: $${Number(c.raw).toFixed(1)}M` } }
+    },
+    scales:{
+      x:{ ticks:{color:'#8fada4'}, grid:{color:'#e4ede9'}, stacked:true },
+      y:{ ticks:{color:'#8fada4', callback:v=>'$'+v+'M'}, grid:{color:'#e4ede9'}, stacked:true }
+    }
+  });
+
+  // 2. Current assets donut
+  const caOther=Math.max(0,M(L.CurrentAssets)-M(L.Cash||0)-M(L.TradeReceivables||0)-M(L.Inventories||0));
+  mkChart('cc-ca-donut','doughnut',{
+    labels:['Cash','Trade Receivables','Inventories','Other'],
+    datasets:[{ data:[M(L.Cash||0),M(L.TradeReceivables||0),M(L.Inventories||0),caOther],
+      backgroundColor:['#7eb5d4','#5db88a','#e07878','#b0bcb8'], borderWidth:0 }]
+  }, donutOpts());
+
+  // 3. Ratio trend
+  mkChart('cc-ratio-trend','line',{
+    labels:months,
+    datasets:[
+      { label:'D/E Ratio %', yAxisID:'y',
+        data:rows.map(r=>r.Equity?(Math.abs(r.TotalLiabilities)/Math.abs(r.Equity)*100).toFixed(1):null),
+        borderColor:'#e07878', backgroundColor:'rgba(224,120,120,.1)', tension:.35, fill:true,
+        pointRadius:4, pointHoverRadius:6 },
+      { label:'Current Ratio %', yAxisID:'y2',
+        data:rows.map(r=>r.CurrentLiabilities?(Math.abs(r.CurrentAssets)/Math.abs(r.CurrentLiabilities)*100).toFixed(1):null),
+        borderColor:'#7eb5d4', backgroundColor:'transparent', tension:.35, borderDash:[5,3],
+        pointRadius:4, pointHoverRadius:6 }
+    ]
+  },{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ labels:{ color:'#8fada4' } },
+      datalabels:{ display:true, color:ctx=>ctx.datasetIndex===0?'#e07878':'#7eb5d4', font:{size:10,weight:'600'},
+        formatter:v=>v?v+'%':null, align:'top', anchor:'end' },
+      tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: ${c.raw}%` } }
+    },
+    scales:{
+      x:{ ticks:{color:'#8fada4'}, grid:{color:'#e4ede9'} },
+      y:{ position:'left', ticks:{color:'#e07878',callback:v=>v+'%'}, grid:{color:'#e4ede9'},
+          title:{display:true,text:'D/E Ratio %',color:'#e07878'} },
+      y2:{ position:'right', ticks:{color:'#7eb5d4',callback:v=>v+'%'}, grid:{display:false},
+           title:{display:true,text:'Current Ratio %',color:'#7eb5d4'} }
+    }
+  });
+
+  // 4. Revenue + profit trend
+  mkChart('cc-revenue','bar',{
+    labels:months,
+    datasets:[
+      { label:'Sales', type:'bar', yAxisID:'y', data:rows.map(r=>M(r.Sales).toFixed(1)),
+        backgroundColor:'rgba(126,181,212,.35)' },
+      { label:'Operating Income', type:'line', yAxisID:'y',
+        data:rows.map(r=>M(r.OperatingProfit).toFixed(1)),
+        borderColor:'#5db88a', fill:false, tension:.35, pointRadius:4 },
+      { label:'Net Income', type:'line', yAxisID:'y',
+        data:rows.map(r=>M(r.NetIncome).toFixed(1)),
+        borderColor:'#e07878', fill:false, tension:.35, borderDash:[4,2], pointRadius:4 }
+    ]
+  },{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ labels:{ color:'#8fada4', font:{size:11} } },
+      datalabels:{ display:ctx=>ctx.datasetIndex===0, color:'#5a7268', font:{size:9},
+        formatter:v=>'$'+v+'M', align:'top', anchor:'end' },
+      tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: $${Number(c.raw).toFixed(1)}M` } }
+    },
+    scales:{
+      x:{ ticks:{color:'#8fada4'}, grid:{color:'#e4ede9'} },
+      y:{ ticks:{color:'#8fada4', callback:v=>'$'+v+'M'}, grid:{color:'#e4ede9'} }
+    }
+  });
+
+  // 5. Waterfall
+  const wItems=buildWaterfall(L);
+  mkChart('cc-waterfall','bar',{
+    labels:wItems.map(w=>w.label),
+    datasets:[
+      { label:'_base', data:wItems.map(w=>w.base), backgroundColor:'transparent', stack:'w' },
+      { label:'Amount (USD M)', data:wItems.map(w=>w.val), backgroundColor:wItems.map(w=>w.color), stack:'w' }
+    ]
+  },{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ display:false },
+      datalabels:{ display:ctx=>ctx.datasetIndex===1, color:'#1a2e24', font:{size:10,weight:'600'},
+        formatter:(v,ctx)=>'$'+wItems[ctx.dataIndex].val.toFixed(1)+'M', align:'top', anchor:'end' },
+      tooltip:{ filter:i=>i.datasetIndex===1, callbacks:{ label:c=>`$${c.raw.toFixed(1)}M` } }
+    },
+    scales:{
+      x:{ ticks:{color:'#8fada4', maxRotation:35, font:{size:10}}, grid:{color:'#e4ede9'}, stacked:true },
+      y:{ ticks:{color:'#8fada4', callback:v=>'$'+v.toFixed(0)+'M'}, grid:{color:'#e4ede9'}, stacked:true }
+    }
+  });
+
+  // 6. Mfg cost donut
+  mkChart('cc-mfg','doughnut',{
+    labels:['Material','Labor','Overhead'],
+    datasets:[{ data:[M(L.MaterialCost||0),M(L.LaborCost||0),M(L.MfgOverhead||0)],
+      backgroundColor:['#e07878','#7eb5d4','#5db88a'], borderWidth:0 }]
+  }, donutOpts());
+
+  // 7. Debt composition stacked bar with total line
+  const debtTotals = rows.map(r=>+(M(r.ShortTermDebt||0)+M(r.LongTermDebt||0)).toFixed(1));
+  mkChart('cc-debt-comp','bar',{
+    labels:months,
+    datasets:[
+      { label:'Short-term Debt', data:rows.map(r=>M(r.ShortTermDebt||0).toFixed(1)), backgroundColor:'#e07878', stack:'d' },
+      { label:'Long-term Debt',  data:rows.map(r=>M(r.LongTermDebt||0).toFixed(1)),  backgroundColor:'#b0bcb8', stack:'d' },
+      { label:'Total Debt', type:'line', data:debtTotals, borderColor:'#1a2e24', borderWidth:2,
+        borderDash:[5,3], pointRadius:4, pointBackgroundColor:'#1a2e24', fill:false, stack:'' }
+    ]
+  },{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ labels:{ color:'#8fada4', font:{size:11} } },
+      datalabels:{
+        display: ctx => ctx.datasetIndex===2,
+        color:'#1a2e24', font:{size:9,weight:'600'},
+        formatter: v => '$'+Number(v).toFixed(1)+'M',
+        align:'top', anchor:'end', clamp:true
+      },
+      tooltip:{ callbacks:{ label: c => `${c.dataset.label}: $${Number(c.raw).toFixed(1)}M` }}
+    },
+    scales:{
+      x:{ ticks:{color:'#8fada4'}, grid:{color:'#e4ede9'}, stacked:true },
+      y:{ ticks:{color:'#8fada4', callback:v=>'$'+v+'M'}, grid:{color:'#e4ede9'}, stacked:true }
+    }
+  });
+
+  // 8. Working capital grouped bar + net WC line
+  const wcNetData = rows.map(r => (M(r.TradeReceivables||0) + M(r.Inventories||0) - M(r.TradePayables||0)).toFixed(1));
+  mkChart('cc-wc','bar',{
+    labels:months,
+    datasets:[
+      { label:'Trade Receivables', type:'bar', yAxisID:'y', data:rows.map(r=>M(r.TradeReceivables||0).toFixed(1)), backgroundColor:'rgba(126,181,212,.7)' },
+      { label:'Inventories',       type:'bar', yAxisID:'y', data:rows.map(r=>M(r.Inventories||0).toFixed(1)),      backgroundColor:'rgba(93,184,138,.7)' },
+      { label:'Trade Payables',    type:'bar', yAxisID:'y', data:rows.map(r=>(-Math.abs(M(r.TradePayables||0))).toFixed(1)), backgroundColor:'rgba(224,120,120,.7)' },
+      { label:'Net Working Capital', type:'bar', yAxisID:'y',
+        data:wcNetData,
+        backgroundColor: wcNetData.map(v=>Number(v)>=0?'rgba(45,143,101,.85)':'rgba(200,80,80,.85)'),
+        borderRadius:3
+      }
+    ]
+  },{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ labels:{ color:'#8fada4' } },
+      datalabels:{
+        display:true,
+        color: ctx => ctx.datasetIndex === 2 ? '#e07878' : ctx.datasetIndex === 3 ? (Number(ctx.dataset.data[ctx.dataIndex])>=0?'#2d8f65':'#e07878') : '#5a7268',
+        font:{ size:10, weight:'700' },
+        formatter:(v,ctx) => {
+          if(Math.abs(Number(v)) < 0.1) return null;
+          return '$'+Math.abs(Number(v)).toFixed(1)+'M';
+        },
+        align: ctx => ctx.datasetIndex === 2 ? 'bottom' : 'top',
+        anchor: ctx => ctx.datasetIndex === 2 ? 'end' : 'end',
+        offset: 2
+      },
+      tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: $${Number(c.raw).toFixed(1)}M` } }
+    },
+    scales:{
+      x:{ ticks:{color:'#8fada4'}, grid:{color:'#e4ede9'} },
+      y:{ ticks:{color:'#8fada4', callback:v=>'$'+v+'M'}, grid:{color:'#e4ede9'} }
+    }
+  });
+
+  // Working Capital 최신월 요약
+  const wcVal = M(L.TradeReceivables||0) + M(L.Inventories||0) - M(L.TradePayables||0);
+  const wcEl = document.getElementById('wc-value');
+  if (wcEl) {
+    wcEl.textContent = 'Latest: $' + wcVal.toFixed(1) + 'M';
+    wcEl.style.color = wcVal >= 0 ? '#2d8f65' : '#e07878';
+  }
+
+  // 9. P&L Waterfall (moved from Earnings tab)
+  const wItemsFS=buildWaterfall(L);
+  mkChart('pl-waterfall','bar',{
+    labels:wItemsFS.map(w=>w.label),
+    datasets:[
+      { label:'_base', data:wItemsFS.map(w=>w.base), backgroundColor:'transparent', stack:'w' },
+      { label:'Amount', data:wItemsFS.map(w=>w.val), backgroundColor:wItemsFS.map(w=>w.color), stack:'w' }
+    ]
+  },{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{display:false},
+      datalabels:{ display:ctx=>ctx.datasetIndex===1, color:'#1a2e24', font:{size:10,weight:'600'},
+        formatter:(v,ctx)=>'$'+wItemsFS[ctx.dataIndex].val.toFixed(1)+'M', align:'top', anchor:'end' },
+      tooltip:{ filter:i=>i.datasetIndex===1, callbacks:{ label:c=>`$${c.raw.toFixed(1)}M` } }
+    },
+    scales:{
+      x:{ ticks:{color:'#8fada4', maxRotation:30, font:{size:10}}, grid:{color:'#e4ede9'}, stacked:true },
+      y:{ ticks:{color:'#8fada4', callback:v=>'$'+v.toFixed(0)+'M'}, grid:{color:'#e4ede9'}, stacked:true }
+    }
+  });
+
+  // 10. Monthly P&L Trend (moved from Earnings tab)
+  mkChart('pl-trend','bar',{
+    labels:months,
+    datasets:[
+      { label:'Sales', type:'bar', yAxisID:'y', data:rows.map(r=>M(r.Sales).toFixed(1)), backgroundColor:'rgba(126,181,212,.35)' },
+      { label:'Gross Profit', type:'line', yAxisID:'y', data:rows.map(r=>M(r.GrossProfit).toFixed(1)),
+        borderColor:'#3aaa7a', fill:false, tension:.35, pointRadius:4 },
+      { label:'Operating Income', type:'line', yAxisID:'y', data:rows.map(r=>M(r.OperatingProfit).toFixed(1)),
+        borderColor:'#5db88a', fill:false, tension:.35, pointRadius:3, borderDash:[3,2] },
+      { label:'Net Income', type:'line', yAxisID:'y', data:rows.map(r=>M(r.NetIncome).toFixed(1)),
+        borderColor:'#e07878', fill:false, tension:.35, pointRadius:3, borderDash:[5,3] }
+    ]
+  },{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ labels:{ color:'#8fada4', font:{size:11} } },
+      datalabels:{ display:ctx=>ctx.datasetIndex===0, color:'#5a7268', font:{size:9},
+        formatter:v=>'$'+v+'M', align:'top', anchor:'end' },
+      tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: $${Number(c.raw).toFixed(1)}M` } }
+    },
+    scales:{
+      x:{ ticks:{color:'#8fada4'}, grid:{color:'#e4ede9'} },
+      y:{ ticks:{color:'#8fada4', callback:v=>'$'+v+'M'}, grid:{color:'#e4ede9'} }
+    }
+  });
+}
+
+/* Waterfall builder — data in '000 USD, display in USD M */
+function buildWaterfall(L) {
+  const M = v => Math.abs(v||0)/1000;
+  const rev=M(L.Sales), cogs=M(L.COGS||0), gp=rev-cogs;
+  const sga=M(L.SGAExpenses||0), op=gp-sga;
+  const noi=M(L.NonOpIncome||0), noe=M(L.NonOpExpense||0), net=M(L.NetIncome||0);
+
+  const items=[
+    {label:'Revenue',      val:rev,   color:'#7eb5d4'},
+    {label:'− COGS',       val:cogs,  color:'#e07878'},
+    {label:'Gross Profit', val:gp,    color:'#5db88a'},
+    {label:'− SG&A',       val:sga,   color:'#e07878'},
+    {label:'Operating I.', val:op,    color:'#5db88a'},
+    {label:'+ Non-Op Inc.',val:noi,   color:'#7eb5d4'},
+    {label:'− Non-Op Exp.',val:noe,   color:'#e07878'},
+    {label:'Net Income',   val:net,   color:'#f0c060'}
+  ];
+
+  const negItems=['− COGS','− SG&A','− Non-Op Exp.'];
+  let cursor=0;
+  return items.map(it=>{
+    const isNeg=negItems.includes(it.label);
+    const isTotal=['Gross Profit','Operating I.','Net Income'].includes(it.label);
+    const base = isNeg ? cursor-it.val : (isTotal ? 0 : cursor);
+    const out={ label:it.label, base:Math.max(0,base), val:it.val, color:it.color };
+    if (!isTotal) cursor += isNeg ? -it.val : it.val;
+    else cursor = it.val;
+    return out;
+  });
+}
+
+/* ══════════════════════════════════════════
+   EARNINGS & OUTLOOK TAB
+══════════════════════════════════════════ */
+function renderEarningsTab() {
+  if (!fsRows.length) {
+    // Still render forecast table even without FS data
+    renderForecastTable(getSelectedMonth());
+    return;
+  }
+  const L=getActiveRow(); if(!L) return;
+  const rows=getDisplayRows();
+  const months=rows.map(r=>r.Month);
+  const sel=getSelectedMonth();
+  const M = v => (v||0)/1000; // '000 USD → USD M (signed)
+
+  // KPIs
+  const pct = (a,b) => b ? (a/b*100).toFixed(1)+'%' : '—%';
+  const fmtM = v => (Math.abs(v/1000)).toFixed(1);
+  const signColor = v => v>=0?'good':'warn';
+
+  setKPI('pkc-sales',  fmtM(L.Sales),'M',`USD M (’000 USD: ${fmt000(L.Sales)})`, 'hi');
+  setKPI('pkc-gp',     fmtM(L.GrossProfit),'M','GP Margin: '+pct(L.GrossProfit,L.Sales), signColor(L.GrossProfit));
+  setKPI('pkc-oi',     fmtM(L.OperatingProfit),'M','OI Margin: '+pct(L.OperatingProfit,L.Sales), signColor(L.OperatingProfit));
+  setKPI('pkc-ebitda', fmtM(L.EBITDA||0),'M','EBITDA Margin: '+pct(L.EBITDA||0,L.Sales), signColor(L.EBITDA||0));
+  setKPI('pkc-ni',     fmtM(L.NetIncome),'M','NI Margin: '+pct(L.NetIncome,L.Sales), signColor(L.NetIncome));
+
+  // P&L Detail Table
+  const plItems = [
+    { label:'Sales',              key:'Sales',           bold:true  },
+    { label:'COGS',               key:'COGS',            bold:true  },
+    { label:'  Material',         key:'MaterialCost',    bold:false },
+    { label:'  Labor',            key:'LaborCost',       bold:false },
+    { label:'  Overhead',         key:'MfgOverhead',     bold:false },
+    { label:'Gross Profit',       key:'GrossProfit',     bold:true  },
+    { label:'SG&A',               key:'SGAExpenses',     bold:false },
+    { label:'Operating Income',   key:'OperatingProfit', bold:true  },
+    { label:'EBITDA',             key:'EBITDA',          bold:true  },
+    { label:'Non-Op Income',      key:'NonOpIncome',     bold:false },
+    { label:'Non-Op Expense',     key:'NonOpExpense',    bold:false },
+    { label:'Net Income',         key:'NetIncome',       bold:true  },
+  ];
+
+  const thead=document.getElementById('pl-thead');
+  const tbody=document.getElementById('pl-tbody');
+  thead.innerHTML=`<tr><th>('000 USD)</th>`+months.map(m=>`<th style="text-align:right">${formatMonthLabel(m)}</th>`).join('')+'</tr>';
+
+  tbody.innerHTML = plItems.map(item=>{
+    const isIndent = item.label.startsWith('  ');
+    const rowClass = item.bold ? 'row-bold row-highlight' : (isIndent ? 'row-sub' : '');
+    const cells = rows.map(r=>{
+      const v = r[item.key] || 0;
+      const color = item.bold && v<0 ? 'color:#e07878' : (item.bold && v>0 ? 'color:#1a2e24' : '');
+      const isSel = sel && r.Month===sel;
+      const bg = isSel ? 'background:#e8f5ef;' : '';
+      return `<td style="text-align:right;${color};${bg}">${fmt000(v)}</td>`;
+    }).join('');
+    const labelCell = isIndent
+      ? `<td style="padding-left:28px;color:var(--body)">${item.label.trim()}</td>`
+      : `<td>${item.label}</td>`;
+    return `<tr class="${rowClass}">${labelCell}${cells}</tr>`;
+  }).join('');
+
+  // Forecast Table
+  renderForecastTable(sel);
+}
+
+/* ─── Forecast from raw Forecast sheet (dashboard_data.xlsx) ─── */
+function renderForecastFromRaw(rows, selectedMonth) {
+  const thead = document.getElementById('fcst-thead');
+  const tbody  = document.getElementById('fcst-tbody');
+  const title  = document.getElementById('fcst-title');
+  const sub    = document.getElementById('fcst-sub');
+
+  // Locate columns from the header row ('Jan' … 'Total') — the sheet range may start at col A or B
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let hdrIdx = rows.findIndex(r => r && r.some(v => String(v).trim() === 'Jan'));
+  if (hdrIdx < 0) hdrIdx = 4;
+  const hdr = rows[hdrIdx] || [];
+  let janCol = hdr.findIndex(v => String(v).trim() === 'Jan');
+  if (janCol < 1) janCol = 1;
+  const labelCol = janCol - 1;
+  let totalCol = hdr.findIndex(v => String(v).trim() === 'Total');
+  if (totalCol < 0) totalCol = janCol + 12;
+
+  // Version ("8+4") and year ("2026 Rolling") from the rows above the header
+  let fcstVersion = '', fcstYear = new Date().getFullYear();
+  rows.slice(0, hdrIdx).forEach(r => (r || []).forEach(v => {
+    const t = String(v).trim();
+    if (/^\d+\+\d+$/.test(t)) fcstVersion = t;
+    const ym = t.match(/^(\d{4})\s+Rolling/i);
+    if (ym) fcstYear = parseInt(ym[1]);
+  }));
+  title.textContent = 'Rolling Forecast' + (fcstVersion ? ' (' + fcstVersion + ')' : '');
+  sub.textContent   = fcstYear + " Rolling Forecast ('000 USD)";
+
+  // Key rows to bold+highlight
+  const KEY_ROWS = [
+    'Sales Rev', 'COGS', 'Gross Profit', 'SG&A',
+    'O.I.(Exc.HQ)', 'EBITDA(Inc.HQ)', 'Net Income(Exc.HQ)',
+    'Ordinary Income(Exc.HQ)'
+  ];
+
+  // Determine last actual month index (0=Jan … 11=Dec) from FS data
+  let lastActualIdx = -1;
+  if (fsRows.length) {
+    const lastMonth = fsRows[fsRows.length - 1].Month; // "YYYY-MM"
+    if (lastMonth) {
+      const [yr, mo] = lastMonth.split('-').map(Number);
+      if (yr === fcstYear) lastActualIdx = mo - 1;    // 0-based
+      else if (yr > fcstYear) lastActualIdx = 11;     // all actual
+      // yr < fcstYear → lastActualIdx stays -1 (all forecast)
+    }
+  }
+
+  // Build header row
+  const monthHeaders = months.map((m, mi) => {
+    const isActual = mi <= lastActualIdx;
+    const badge = isActual
+      ? '<span class="badge badge-actual" style="font-size:9px;padding:2px 6px">A</span>'
+      : '<span class="badge badge-fcst"   style="font-size:9px;padding:2px 6px">F</span>';
+    const isSel = selectedMonth && selectedMonth.endsWith('-' + String(mi + 1).padStart(2, '0'));
+    const bg    = isSel ? 'background:#e8f5ef;' : '';
+    const clr   = !isActual ? 'color:var(--muted);' : '';
+    return `<th style="text-align:right;${bg}${clr}">${m} ${badge}</th>`;
+  }).join('');
+
+  thead.innerHTML = `<tr>
+    <th style="min-width:200px">('000 USD)</th>
+    ${monthHeaders}
+    <th style="text-align:right">Total</th>
+  </tr>`;
+
+  const dataRows = rows.slice(hdrIdx + 1);
+
+  const trs = dataRows.map(row => {
+    if (!row) return '';
+    const label = String(row[labelCol] || '').trim();
+    if (!label) return '';                     // blank label
+    if (label.startsWith('%')) return '';      // skip % rows
+
+    const isKey  = KEY_ROWS.some(k => label === k || label.includes(k));
+    const rowCls = isKey ? 'row-bold row-highlight' : '';
+
+    const cells = months.map((m, mi) => {
+      const raw  = row[janCol + mi];
+      const num  = (raw !== '' && raw !== null && raw !== undefined) ? (Number(raw) || 0) : 0;
+      const isSel    = selectedMonth && selectedMonth.endsWith('-' + String(mi + 1).padStart(2, '0'));
+      const isActual = mi <= lastActualIdx;
+      const bgStyle  = isSel ? 'background:#e8f5ef;' : '';
+      // Future forecast months: muted + italic
+      const fcstStyle = !isActual ? 'color:var(--muted);font-style:italic;' : '';
+      const valColor  = isKey && num < 0 ? 'color:#e07878;'
+                      : isKey && num > 0 ? 'color:var(--ink);' : '';
+      return `<td style="text-align:right;${bgStyle}${fcstStyle}${valColor}">${fmt000(num)}</td>`;
+    }).join('');
+
+    const totalRaw = row[totalCol];
+    const totalNum = (totalRaw !== '' && totalRaw !== null && totalRaw !== undefined) ? (Number(totalRaw) || 0) : 0;
+    const totClr   = isKey && totalNum < 0 ? 'color:#e07878;' : isKey ? 'color:var(--ink);' : '';
+    const totalCell = `<td style="text-align:right;font-weight:700;${totClr}">${fmt000(totalNum)}</td>`;
+
+    return `<tr class="${rowCls}"><td>${label}</td>${cells}${totalCell}</tr>`;
+  }).filter(Boolean).join('');
+
+  tbody.innerHTML = trs ||
+    '<tr><td colspan="14" style="text-align:center;padding:32px;color:var(--muted)">No forecast rows found</td></tr>';
+}
+
+function renderForecastTable(selectedMonth) {
+  // Prefer raw Forecast sheet data from dashboard_data.xlsx
+  if (forecastRawData) {
+    renderForecastFromRaw(forecastRawData, selectedMonth);
+    return;
+  }
+
+  const thead = document.getElementById('fcst-thead');
+  const tbody  = document.getElementById('fcst-tbody');
+  const title  = document.getElementById('fcst-title');
+  const sub    = document.getElementById('fcst-sub');
+
+  if (!forecastData) {
+    if (fsRows.length) {
+      // No Forecast sheet — show FS actuals as a baseline trend table
+      title.textContent = 'Actuals Trend (Forecast 시트 없음)';
+      sub.textContent   = "'000 USD — FS 실적 데이터 기준 | Forecast 데이터를 보려면 dashboard_data.xlsx에 Forecast 시트를 추가하세요";
+
+      const displayRows = getDisplayRows();
+      const plItems = [
+        { label: 'Sales',            key: 'Sales',           bold: true  },
+        { label: 'COGS',             key: 'COGS',            bold: false },
+        { label: 'Gross Profit',     key: 'GrossProfit',     bold: true  },
+        { label: 'SG&A',             key: 'SGAExpenses',     bold: false },
+        { label: 'Operating Income', key: 'OperatingProfit', bold: true  },
+        { label: 'EBITDA',           key: 'EBITDA',          bold: false },
+        { label: 'Net Income',       key: 'NetIncome',       bold: true  },
+      ];
+
+      // Compute YTD totals for each item
+      const ytd = {};
+      plItems.forEach(item => {
+        ytd[item.key] = displayRows.reduce((s,r) => s + (r[item.key]||0), 0);
+      });
+
+      const colCount = displayRows.length + 2; // label + months + YTD
+      thead.innerHTML = "<tr><th>('000 USD) "
+        + '<span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;font-size:11px">'
+        + '— Actuals only. Add a Forecast sheet to dashboard_data.xlsx for forecast data.</span></th>'
+        + displayRows.map(r => {
+            const isSel = selectedMonth && r.Month === selectedMonth;
+            const bg = isSel ? 'background:#e8f5ef;' : '';
+            return `<th style="text-align:right;${bg}">${formatMonthLabel(r.Month)} <span class="badge badge-actual">A</span></th>`;
+          }).join('')
+        + '<th style="text-align:right">YTD</th></tr>';
+
+      tbody.innerHTML = plItems.map(item => {
+        const rowClass = item.bold ? 'row-bold row-highlight' : '';
+        const cells = displayRows.map(r => {
+          const v = r[item.key] || 0;
+          const isSel = selectedMonth && r.Month === selectedMonth;
+          const bg = isSel ? 'background:#e8f5ef;' : '';
+          const color = item.bold && v < 0 ? 'color:#e07878' : (item.bold && v > 0 ? 'color:#1a2e24' : '');
+          return `<td style="text-align:right;${bg};${color}">${fmt000(v)}</td>`;
+        }).join('');
+        const tot = ytd[item.key] || 0;
+        const totColor = item.bold && tot < 0 ? 'color:#e07878' : (item.bold ? 'color:#1a2e24' : '');
+        return `<tr class="${rowClass}"><td>${item.label}</td>${cells}<td style="text-align:right;font-weight:700;${totColor}">${fmt000(tot)}</td></tr>`;
+      }).join('');
+    } else {
+      title.textContent = 'Rolling Forecast';
+      sub.textContent   = "'000 USD";
+      thead.innerHTML   = '';
+      tbody.innerHTML   = '<tr><td colspan="14" style="text-align:center;padding:32px;color:var(--muted)">Forecast 데이터 없음 — dashboard_data.xlsx에 Forecast 시트를 추가하세요</td></tr>';
+    }
+    return;
+  }
+
+  const { fcstLabel, dataYear, isActual, rowData, rowsConfig } = forecastData;
+  title.textContent = `Rolling Forecast ${fcstLabel ? '('+fcstLabel+')' : ''} — ${dataYear}`;
+  sub.textContent   = "'000 USD";
+
+  // Month headers
+  const monthCols = MONTH_NAMES.map((m,mi)=>{
+    const isAct = isActual[mi];
+    const badge = isAct ? '<span class="badge badge-actual">A</span>' : '<span class="badge badge-fcst">F</span>';
+    const isSel = selectedMonth && selectedMonth.endsWith('-'+String(mi+1).padStart(2,'0'));
+    const bg = isSel ? 'background:#e8f5ef;' : '';
+    return `<th style="text-align:right;${bg}">${m} ${badge}</th>`;
+  }).join('');
+  thead.innerHTML = `<tr><th>('000 USD)</th>${monthCols}<th style="text-align:right">Total</th></tr>`;
+
+  // Rows
+  tbody.innerHTML = rowsConfig.map(cfg=>{
+    const d = rowData[cfg.key];
+    if (!d || d.ri < 0) return '';
+    const rowClass = cfg.bold ? 'row-bold row-highlight' : (cfg.indent ? 'row-sub' : '');
+    const cells = MONTH_NAMES.map((m,mi)=>{
+      const v = d.values[mi];
+      const isSel = selectedMonth && selectedMonth.endsWith('-'+String(mi+1).padStart(2,'0'));
+      const bg = isSel ? 'background:#e8f5ef;' : '';
+      const color = cfg.bold && v<0 ? 'color:#e07878' : '';
+      return `<td style="text-align:right;${bg};${color}">${fmt000(v)}</td>`;
+    }).join('');
+    const totalColor = cfg.bold && d.total<0 ? 'color:#e07878' : (cfg.bold?'color:#1a2e24':'');
+    const labelCell = cfg.indent
+      ? `<td style="padding-left:28px;color:var(--body)">${cfg.label.trim()}</td>`
+      : `<td>${cfg.label}</td>`;
+    return `<tr class="${rowClass}">${labelCell}${cells}<td style="text-align:right;font-weight:700;${totalColor}">${fmt000(d.total)}</td></tr>`;
+  }).filter(Boolean).join('');
+}
+
+/* ══════════════════════════════════════════
+   VENDOR TAB  (unchanged from original)
+══════════════════════════════════════════ */
+function renderVendorTab() {
+  if (!vendorRows.length) return;
+  const today=new Date();
+  const vfV=document.getElementById('vf-vendor').value;
+  const vfC=document.getElementById('vf-category').value;
+  const vfS=document.getElementById('vf-status').value;
+
+  const docMap={};
+  vendorRows.filter(r=>String(r.Type||'').trim()==='RE').forEach(r=>{
+    const vid=String(r.Vendor||'').trim();
+    if(!VENDOR_CFG[vid]) return;
+    const key=String(r.DocumentNo||r.DocNo||'').trim();
+    const ex=docMap[key];
+    if(!ex||(isCleared(r)&&!isCleared(ex))) docMap[key]=r;
+  });
+  const allRE=Object.values(docMap);
+
+  const filtered=allRE.filter(r=>{
+    const vid=String(r.Vendor).trim();
+    const cfg=VENDOR_CFG[vid];
+    if(!cfg) return false;
+    if(vfV&&vid!==vfV) return false;
+    if(vfC&&cfg.cat!==vfC) return false;
+    const isOpen=!(isCleared(r));
+    if(vfS==='OPEN'&&!isOpen) return false;
+    if(vfS==='PAID'&&isOpen) return false;
+    return true;
+  });
+
+  const openRows=filtered.filter(r=>!(isCleared(r)));
+  const clearedRows=filtered.filter(r=>(isCleared(r)));
+  const payDays=clearedRows.map(r=>dateDiff(r.DocDate,r.Clearing)).filter(d=>d!==null&&d>=0);
+  const avgDays=payDays.length?(payDays.reduce((a,b)=>a+b,0)/payDays.length):null;
+  const openAmt=openRows.reduce((s,r)=>s+Math.abs(parseFloat(String(r.AmountUSD||0).replace(/,/g,''))||0),0);
+
+  setKPI('vkc-vendors',[...new Set(filtered.map(r=>r.Vendor))].length.toLocaleString('en-US'),'','Active Vendors','');
+  setKPI('vkc-total',filtered.length.toLocaleString('en-US'),'','Total RE Invoices','');
+  setKPI('vkc-open',openRows.length.toLocaleString('en-US'),'','Open Invoices','warn');
+  setKPI('vkc-amt',(openAmt/1e6).toFixed(1),'M','Outstanding USD','warn');
+  setKPI('vkc-days',avgDays!==null?avgDays.toFixed(0):'—','d','Avg Payment Days (cleared)','');
+
+  const maxPstng=vendorRows.reduce((mx,r)=>{const d=parseD(r.PstngDate||r.PostingDate||'');return(d&&(!mx||d>mx))?d:mx;},null);
+  const asofEl=document.getElementById('vendor-data-asof');
+  if(asofEl) asofEl.textContent=maxPstng?'Data as of '+maxPstng.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}):'';
+
+  renderVOpenSummary(openRows);
+  renderVAvgDays(filtered);
+  renderVAging(openRows,today);
+  renderVTable(filtered,today);
+}
+
+function renderVOpenSummary(openRows) {
+  const tbody=document.getElementById('v-open-summary-body');
+  const summary={};
+  for(const r of openRows){const vid=String(r.Vendor).trim();const cfg=VENDOR_CFG[vid];if(!cfg)continue;if(!summary[vid])summary[vid]={name:cfg.name,cat:cfg.cat,count:0,amt:0};summary[vid].count++;summary[vid].amt+=Math.abs(parseFloat(String(r.AmountUSD||0).replace(/,/g,''))||0);}
+  const rows2=Object.values(summary).sort((a,b)=>b.amt-a.amt);
+  if(!rows2.length){tbody.innerHTML=`<tr><td colspan="3" style="text-align:center;padding:24px;color:var(--muted)">No open invoices</td></tr>`;return;}
+  tbody.innerHTML=rows2.map(r=>`<tr><td>${r.name}</td><td style="color:var(--body)">${r.cat}</td><td style="text-align:right;font-weight:600;color:var(--ink)">$${r.amt.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>`).join('');
+}
+
+function renderVAvgDays(data) {
+  const vids=Object.keys(VENDOR_CFG);
+  const labels=vids.map(v=>VENDOR_CFG[v].name);
+  const avgs=vids.map(vid=>{const rows=data.filter(r=>String(r.Vendor).trim()===vid&&isCleared(r));const days=rows.map(r=>dateDiff(r.DocDate,r.Clearing)).filter(d=>d!==null&&d>=0);return days.length?days.reduce((a,b)=>a+b,0)/days.length:null;});
+  const colors=vids.map(v=>CAT_COLOR[VENDOR_CFG[v].cat]||'#555');
+  mkChart('vc-avgdays','bar',{labels,datasets:[{label:'Avg Payment Days',data:avgs,backgroundColor:colors,borderWidth:0}]},{
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},
+      datalabels:{display:true,color:'#1a2e24',font:{size:10,weight:'600'},formatter:v=>v?v.toFixed(0)+'d':null,align:'right',anchor:'end'},
+      tooltip:{callbacks:{label:c=>c.raw!==null?c.raw.toFixed(0)+' days':'No cleared data'}}},
+    scales:{x:{ticks:{color:'#8fada4'},grid:{color:'#e4ede9'},title:{display:true,text:'Days',color:'#8fada4'}},y:{ticks:{color:'#8fada4',font:{size:11}},grid:{color:'#e4ede9'}}}
+  });
+}
+
+function renderVDist(data) {
+  const cleared=data.filter(r=>isCleared(r));
+  const vids=[...new Set(cleared.map(r=>String(r.Vendor).trim()))];
+  const labels=vids.map(v=>VENDOR_CFG[v]?.name||v);
+  const buckets=['0–30d','31–60d','61–90d','91–120d','120+d'];
+  const bcColors=['#5db88a','#7eb5d4','#f0c060','#e07878','#c8877a'];
+  const datasets=buckets.map((b,bi)=>({label:b,stack:'d',backgroundColor:bcColors[bi],data:vids.map(vid=>{const rows=cleared.filter(r=>String(r.Vendor).trim()===vid);return rows.filter(r=>{const d=dateDiff(r.DocDate,r.Clearing);if(d===null||d<0)return false;return[d<=30,d>30&&d<=60,d>60&&d<=90,d>90&&d<=120,d>120][bi];}).length;})}));
+  mkChart('vc-dist','bar',{labels,datasets},barOpts({ylabel:'Count',stacked:true,showLabels:false}));
+}
+
+function renderVAging(openRows,today) {
+  // Use all known vendors (from VENDOR_CFG) that have any open rows
+  const vids=Object.keys(VENDOR_CFG).filter(vid=>openRows.some(r=>String(r.Vendor).trim()===vid));
+  if(!vids.length){killChart('vc-aging');return;}
+  const labels=vids.map(v=>VENDOR_CFG[v].name);
+  const buckets=['0-30','31-60','61-90','91-120','120+'];
+  const bcColors=['#5db88a','#7eb5d4','#f0c060','#e07878','#c8877a'];
+  const datasets=buckets.map((b,bi)=>({
+    label:b, stack:'a', backgroundColor:bcColors[bi],
+    data:vids.map(vid=>{
+      const vrows=openRows.filter(r=>String(r.Vendor).trim()===vid);
+      return vrows.filter(r=>{
+        const doc=parseD(r.DocDate);if(!doc)return false;
+        const age=Math.floor((today-doc)/864e5);
+        return [age<=30, age>30&&age<=60, age>60&&age<=90, age>90&&age<=120, age>120][bi];
+      }).reduce((s,r)=>s+Math.abs(parseFloat(String(r.AmountUSD||0).replace(/,/g,''))||0),0)/1e6;
+    })
+  }));
+  mkChart('vc-aging','bar',{labels,datasets},{
+    indexAxis:'y',
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ labels:{ color:'#8fada4', font:{size:11} } },
+      datalabels:{
+        display: ctx => {
+          if(ctx.datasetIndex !== buckets.length-1) return false;
+          const allDs = ctx.chart.data.datasets.slice(0, buckets.length);
+          const total = allDs.reduce((s,ds)=>s+(Number(ds.data[ctx.dataIndex])||0),0);
+          return total > 0.001;
+        },
+        color:'#1a2e24', font:{size:9,weight:'600'},
+        formatter:(v,ctx)=>{
+          const allDs=ctx.chart.data.datasets.slice(0,buckets.length);
+          const total=allDs.reduce((s,ds)=>s+(Number(ds.data[ctx.dataIndex])||0),0);
+          return '$'+total.toFixed(1)+'M';
+        },
+        align:'right', anchor:'end', clamp:true
+      },
+      tooltip:{ callbacks:{ label:c=>`${c.dataset.label} days: $${Number(c.raw).toFixed(2)}M` }}
+    },
+    scales:{
+      x:{ ticks:{color:'#8fada4', callback:v=>'$'+Number(v).toFixed(1)+'M'}, grid:{color:'#e4ede9'}, stacked:true,
+          title:{display:true, text:'Outstanding Amount (USD M)', color:'#8fada4'} },
+      y:{ ticks:{color:'#8fada4', font:{size:11}}, grid:{color:'#e4ede9'}, stacked:true }
+    }
+  });
+}
+
+function renderVMonthly() {
+  const payRows=vendorRows.filter(r=>{const vid=String(r.Vendor||'').trim();return VENDOR_CFG[vid]&&String(r.Type||'').trim()==='T4';});
+  const allMonths=[...new Set(payRows.map(r=>{const d=parseD(r.PstngDate||r.PostingDate||r.DocDate);return d?fmtMonth(d):null;}).filter(Boolean))].sort();
+  if(!allMonths.length){killChart('vc-monthly');return;}
+  const vids=Object.keys(VENDOR_CFG);
+  const datasets=vids.map((vid,i)=>({label:VENDOR_CFG[vid].name,data:allMonths.map(mon=>{const rows=payRows.filter(r=>{const d=parseD(r.PstngDate||r.PostingDate||r.DocDate);return String(r.Vendor).trim()===vid&&d&&fmtMonth(d)===mon;});return rows.reduce((s,r)=>s+Math.abs(parseFloat(String(r.AmountUSD||0).replace(/,/g,''))||0),0)/1e6;}),borderColor:PALETTE[i%PALETTE.length],backgroundColor:'transparent',tension:.35}));
+  mkChart('vc-monthly','line',{labels:allMonths,datasets},{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8fada4',font:{size:10}}}},scales:{x:{ticks:{color:'#8fada4'},grid:{color:'#e4ede9'}},y:{ticks:{color:'#8fada4',callback:v=>'$'+v.toFixed(1)+'M'},grid:{color:'#e4ede9'}}}});
+}
+
+function renderVOutstanding(openRows) {
+  const vids=Object.keys(VENDOR_CFG);
+  const labels=vids.map(v=>VENDOR_CFG[v].name);
+  const amts=vids.map(vid=>openRows.filter(r=>String(r.Vendor).trim()===vid).reduce((s,r)=>s+Math.abs(parseFloat(String(r.AmountUSD||0).replace(/,/g,''))||0),0)/1e6);
+  mkChart('vc-outstanding','bar',{labels,datasets:[{label:'Outstanding (USD M)',data:amts,backgroundColor:vids.map(v=>CAT_COLOR[VENDOR_CFG[v].cat]||'#555'),borderWidth:0}]},{
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},
+      datalabels:{display:true,color:'#1a2e24',font:{size:10,weight:'600'},formatter:v=>'$'+v.toFixed(1)+'M',align:'right',anchor:'end'},
+      tooltip:{callbacks:{label:c=>'$'+c.raw.toFixed(1)+'M'}}},
+    scales:{x:{ticks:{color:'#8fada4',callback:v=>'$'+v.toFixed(0)+'M'},grid:{color:'#e4ede9'}},y:{ticks:{color:'#8fada4',font:{size:11}},grid:{color:'#e4ede9'}}}
+  });
+}
+
+function renderVTable(data,today) {
+  // Group by vendor, take top 10 by amount desc per vendor
+  const byVendor={};
+  for(const r of data){const vid=String(r.Vendor).trim();if(!byVendor[vid])byVendor[vid]=[];byVendor[vid].push(r);}
+  const rows=[];
+  for(const vendorInvoices of Object.values(byVendor)){
+    const sorted=vendorInvoices.slice().sort((a,b)=>{
+      const amtA=Math.abs(parseFloat(String(a.AmountUSD||0).replace(/,/g,''))||0);
+      const amtB=Math.abs(parseFloat(String(b.AmountUSD||0).replace(/,/g,''))||0);
+      return amtB-amtA;
+    });
+    rows.push(...sorted.slice(0,10));
+  }
+  // Sort final: open first, then by amount desc
+  rows.sort((a,b)=>{
+    const aOpen=!(isCleared(a));
+    const bOpen=!(isCleared(b));
+    if(aOpen!==bOpen)return aOpen?-1:1;
+    const amtA=Math.abs(parseFloat(String(a.AmountUSD||0).replace(/,/g,''))||0);
+    const amtB=Math.abs(parseFloat(String(b.AmountUSD||0).replace(/,/g,''))||0);
+    return amtB-amtA;
+  });
+  const tbody=document.getElementById('vtbody');
+  if(!rows.length){tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:32px;color:#8fada4">No matching records</td></tr>`;return;}
+  tbody.innerHTML=rows.map(r=>{
+    const vid=String(r.Vendor).trim();const cfg=VENDOR_CFG[vid]||{name:vid,cat:'—'};
+    const isOpen=!(isCleared(r));
+    const days=isOpen?(parseD(r.DocDate)?Math.floor((today-parseD(r.DocDate))/864e5):'—'):(dateDiff(r.DocDate,r.Clearing)??'—');
+    const amt=Math.abs(parseFloat(String(r.AmountUSD||0).replace(/,/g,''))||0);
+    const dayColor=isOpen?(days>90?'color:#e07878':'color:#8fada4'):(days>120?'color:#e07878':days>60?'color:#d4943a':'color:#2d8f65');
+    return `<tr><td>${cfg.name}</td><td style="color:#969696">${cfg.cat}</td><td style="font-family:monospace;font-size:11px;color:#969696">${r.DocumentNo||r.DocNo||'—'}</td><td style="color:#969696">${fmtDate(r.DocDate)}</td><td style="color:#969696">${fmtDate(r.PstngDate||r.PostingDate||'')}</td><td style="color:#969696">${isOpen?'—':fmtDate(r.Clearing)}</td><td style="${dayColor};font-weight:600">${days}${typeof days==='number'?'d':''}</td><td style="text-align:right;color:var(--ink)">$${amt.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td><td>${isOpen?'<span class="badge badge-open">Open</span>':'<span class="badge badge-paid">Paid</span>'}</td></tr>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════
+   PROJECTS TAB  (unchanged from original)
+══════════════════════════════════════════ */
+function parseProjectFile(wb) {
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(ws,{defval:0});
+  if(!rows.length) return[];
+  return rows.map(r=>({Month:String(r.Month||'').trim(),Customer:String(r.Customer||'').trim(),Project:String(r.Project||'').trim(),Qty:Number(r.Qty||0),Revenue:Number(r.Revenue||0),Cost:Number(r.Cost||0),PL:Number(r.PL||0),Margin:Number(r.Margin||0)})).filter(r=>r.Month&&r.Project);
+}
+
+function renderProjectsTab() {
+  if(!projectRows.length) return;
+  const months=[...new Set(projectRows.map(r=>r.Month))].sort();
+  const customers=[...new Set(projectRows.map(r=>r.Customer))].sort();
+  const mSel=document.getElementById('pf-month');
+  const cSel=document.getElementById('pf-customer');
+  const pSel=document.getElementById('pf-project');
+  if(mSel.options.length===1) months.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;mSel.appendChild(o);});
+  if(cSel.options.length===1) customers.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;cSel.appendChild(o);});
+  const selMonth=mSel.value,selCustomer=cSel.value;
+  const prevProject=pSel.value;
+  const projPool=projectRows.filter(r=>!selCustomer||r.Customer===selCustomer);
+  const projects=[...new Set(projPool.map(r=>r.Project))].sort();
+  pSel.innerHTML='<option value="">All Projects</option>';
+  projects.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;pSel.appendChild(o);});
+  if(projects.includes(prevProject)) pSel.value=prevProject;
+  const selProject=pSel.value;
+  const latestMonth=months[months.length-1];
+  const asofEl=document.getElementById('proj-asof');
+  if(asofEl) asofEl.textContent=latestMonth?'Data as of '+latestMonth:'';
+  const kpiMonth=selMonth||latestMonth;
+  const kpiRows=projectRows.filter(r=>r.Month===kpiMonth);
+  const totRev=kpiRows.reduce((s,r)=>s+r.Revenue,0);
+  const totCost=kpiRows.reduce((s,r)=>s+r.Cost,0);
+  const totPL=kpiRows.reduce((s,r)=>s+r.PL,0);
+  const totMar=totRev?totPL/totRev*100:0;
+  const M=v=>(v/1e6).toFixed(1);
+  setKPI('pkc-rev',M(totRev),'M','USD — '+kpiMonth,totRev>=0?'good':'warn');
+  setKPI('pkc-cost',M(totCost),'M','USD — '+kpiMonth,'');
+  setKPI('pkc-pl',M(totPL),'M','USD — '+kpiMonth,totPL>=0?'good':'warn');
+  setKPI('pkc-margin',totMar.toFixed(1),'%','P&L / Revenue',totMar>=5?'good':totMar<0?'warn':'');
+  const chartRows=projectRows.filter(r=>(!selMonth||r.Month===selMonth)&&(!selCustomer||r.Customer===selCustomer)&&(!selProject||r.Project===selProject));
+  const displayMonth=selMonth||latestMonth;
+  const monthRows=chartRows.filter(r=>r.Month===displayMonth);
+  mkChart('pc-revpl','bar',{labels:monthRows.map(r=>r.Project),datasets:[{label:'Revenue',data:monthRows.map(r=>r.Revenue/1e6),backgroundColor:'rgba(126,181,212,.6)'},{label:'P&L',data:monthRows.map(r=>r.PL/1e6),backgroundColor:monthRows.map(r=>r.PL>=0?'rgba(93,184,138,.8)':'rgba(224,120,120,.8)')}]},barOpts({ylabel:'USD M'}));
+  mkChart('pc-margin','bar',{labels:monthRows.map(r=>r.Project),datasets:[{label:'Margin %',data:monthRows.map(r=>r.Margin*100),backgroundColor:monthRows.map(r=>r.PL>=0?'#5db88a':'#e07878'),borderWidth:0}]},{
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},datalabels:{display:true,color:'#1a2e24',font:{size:10},formatter:v=>v.toFixed(1)+'%',align:'right',anchor:'end'},tooltip:{callbacks:{label:c=>c.raw.toFixed(2)+'%'}}},
+    scales:{x:{ticks:{color:'#8fada4',callback:v=>v.toFixed(0)+'%'},grid:{color:'#e4ede9'},title:{display:true,text:'Margin %',color:'#8fada4'}},y:{ticks:{color:'#8fada4',font:{size:11}},grid:{color:'#e4ede9'}}}
+  });
+  const allMonths=[...new Set(chartRows.map(r=>r.Month))].sort();
+  mkChart('pc-trend','line',{labels:allMonths,datasets:[{label:'Revenue',data:allMonths.map(m=>chartRows.filter(r=>r.Month===m).reduce((s,r)=>s+r.Revenue,0)/1e6),borderColor:'#7eb5d4',backgroundColor:'rgba(126,181,212,.15)',fill:true,tension:.35},{label:'P&L',data:allMonths.map(m=>chartRows.filter(r=>r.Month===m).reduce((s,r)=>s+r.PL,0)/1e6),borderColor:'#5db88a',backgroundColor:'transparent',tension:.35}]},barOpts({ylabel:'USD M'}));
+  const tableRows=projectRows.filter(r=>(!selMonth||r.Month===selMonth)&&(!selCustomer||r.Customer===selCustomer)&&(!selProject||r.Project===selProject)).sort((a,b)=>String(b.Month).localeCompare(String(a.Month)));
+  const tbody=document.getElementById('ptbody');
+  if(!tableRows.length){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">No matching records</td></tr>`;return;}
+  const fmt=v=>'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
+  tbody.innerHTML=tableRows.map(r=>{const plColor=r.PL>=0?'color:#2d8f65;font-weight:600':'color:#e07878;font-weight:600';const marColor=r.Margin*100>=5?'color:#2d8f65;font-weight:600':r.Margin*100<0?'color:#e07878;font-weight:600':'color:var(--ink);font-weight:600';return`<tr><td>${r.Month}</td><td style="color:var(--body)">${r.Customer}</td><td>${r.Project}</td><td style="text-align:right;color:var(--body)">${r.Qty.toLocaleString()}</td><td style="text-align:right;color:var(--ink)">${fmt(r.Revenue)}</td><td style="text-align:right;color:var(--body)">${fmt(r.Cost)}</td><td style="text-align:right;${plColor}">${r.PL<0?'('+fmt(r.PL)+')':fmt(r.PL)}</td><td style="text-align:right;${marColor}">${(r.Margin*100).toFixed(2)}%</td></tr>`;}).join('');
+}
+
+/* ══════════════════════════════════════════
+   LEGACY FS PARSER (for fs.xlsx if present)
+   VBA generates this in full USD — convert to '000 USD for consistency
+══════════════════════════════════════════ */
+function parseFSFileLegacy(wb, filename) {
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const jsonRows = XLSX.utils.sheet_to_json(ws, { defval: 0 });
+  if (!jsonRows.length || !Object.prototype.hasOwnProperty.call(jsonRows[0], 'Month')) return [];
+
+  // VBA stores values in raw USD. Divide by 1000 → '000 USD (matches closing pkg format)
+  const numFields = [
+    'CurrentAssets','TotalAssets','CurrentLiabilities','TotalLiabilities',
+    'Equity','Cash','TradeReceivables','Inventories','TradePayables',
+    'ShortTermDebt','LongTermDebt',
+    'Sales','COGS','OperatingProfit','SGAExpenses',
+    'NonOpIncome','NonOpExpense','NetIncome',
+    'MaterialCost','LaborCost','MfgOverhead'
+  ];
+
+  return jsonRows.map(r => {
+    const out = { ...r };
+    numFields.forEach(f => { out[f] = (Number(out[f]) || 0) / 1000; });
+    // Derive missing fields
+    out.GrossProfit     = out.Sales - out.COGS;
+    out.SGAExpenses     = out.SGAExpenses || 0;
+    // EBITDA not in SAP FS export; approximate as OperatingProfit (D&A unknown)
+    out.EBITDA          = out.EBITDA || out.OperatingProfit || 0;
+    out.NonOpIncome     = out.NonOpIncome || 0;
+    out.NonOpExpense    = out.NonOpExpense || 0;
+    return out;
+  });
+}
+
+/* ══════════════════════════════════════════
+   MERGED FILE PARSER  (dashboard_data.xlsx)
+   Sheets: FS | Vendor | Project
+══════════════════════════════════════════ */
+
+// Normalize any Month value (Date object, Excel serial, or string) to "YYYY-MM"
+function normalizeMonth(m) {
+  if (!m && m !== 0) return null;
+  // JS Date object (from cellDates:true)
+  if (m instanceof Date) {
+    if (isNaN(m)) return null;
+    return `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}`;
+  }
+  // Excel serial number (number, not a recognizable year string)
+  if (typeof m === 'number') {
+    // If it looks like YYYYMM (e.g. 202501), parse directly
+    if (m >= 190001 && m <= 209912) {
+      const yr = Math.floor(m / 100);
+      const mo = m % 100;
+      if (mo >= 1 && mo <= 12) return `${yr}-${String(mo).padStart(2,'0')}`;
+    }
+    // Otherwise treat as Excel date serial
+    const d = new Date(Math.round((m - 25569) * 86400000));
+    if (isNaN(d)) return null;
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  }
+  const s = String(m).trim();
+  if (!s) return null;
+  // Already YYYY-MM
+  if (/^\d{4}-\d{2}$/.test(s)) return s;
+  // YYYY-MM-DD or YYYY/MM/DD
+  let match = s.match(/^(\d{4})[-\/\.](\d{1,2})/);
+  if (match) return `${match[1]}-${String(parseInt(match[2])).padStart(2,'0')}`;
+  // Mon-YY or Mon YY (e.g. "Jan-25", "Jan 2025")
+  match = s.match(/^([A-Za-z]{3})[-\s](\d{2,4})$/);
+  if (match) {
+    const mo = MONTH_NAMES.indexOf(match[1].charAt(0).toUpperCase()+match[1].slice(1).toLowerCase()) + 1;
+    if (mo > 0) {
+      const yr = match[2].length === 2 ? 2000 + parseInt(match[2]) : parseInt(match[2]);
+      return `${yr}-${String(mo).padStart(2,'0')}`;
+    }
+  }
+  // Full month name only (e.g. "January", "February") — year unknown, return null
+  // BUT if paired with a year in another cell, handled below.
+  // Full month name + year (e.g. "January 2026", "January-2026")
+  const FULL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  match = s.match(/^([A-Za-z]+)[-\s](\d{4})$/);
+  if (match) {
+    const mo = FULL_MONTHS.indexOf(match[1].charAt(0).toUpperCase()+match[1].slice(1).toLowerCase()) + 1;
+    if (mo > 0) return `${match[2]}-${String(mo).padStart(2,'0')}`;
+  }
+  // YYYYMM as string
+  match = s.match(/^(\d{4})(\d{2})$/);
+  if (match && parseInt(match[2]) >= 1 && parseInt(match[2]) <= 12) {
+    return `${match[1]}-${match[2]}`;
+  }
+  return null;
+}
+
+function parseMergedFile(wb) {
+  const out = { fs: [], vendor: [], project: [], forecast: null };
+
+  // --- FS sheet (Closing Package 기준 '000 USD 그대로 — /1000 안 함) ---
+  const fsSheet = wb.SheetNames.find(n => n === 'FS');
+  if (fsSheet) {
+    const jsonRows = XLSX.utils.sheet_to_json(wb.Sheets[fsSheet], { defval: 0 });
+    out.fs = jsonRows
+      .map(r => ({ ...r, Month: normalizeMonth(r.Month) }))
+      .filter(r => r.Month)
+      .map(r => ({
+        ...r,
+        GrossProfit:  (r.Sales || 0) - (r.COGS || 0),
+        EBITDA:       r.EBITDA || r.OperatingProfit || 0,
+        SGAExpenses:  r.SGAExpenses || 0,
+        NonOpIncome:  r.NonOpIncome  || 0,
+        NonOpExpense: r.NonOpExpense || 0,
+      }))
+      .sort((a, b) => String(a.Month).localeCompare(String(b.Month)));
+  }
+
+  // --- Vendor sheet ---
+  const vSheet = wb.SheetNames.find(n => n.toUpperCase() === 'VENDOR');
+  if (vSheet) {
+    const fakeWb = { SheetNames: [vSheet], Sheets: { [vSheet]: wb.Sheets[vSheet] } };
+    out.vendor = parseVendorFile(fakeWb);
+  }
+
+  // --- Project sheet ---
+  const pSheet = wb.SheetNames.find(n => n.toUpperCase() === 'PROJECT');
+  if (pSheet) {
+    const fakeWb = { SheetNames: [pSheet], Sheets: { [pSheet]: wb.Sheets[pSheet] } };
+    out.project = parseProjectFile(fakeWb);
+  }
+
+  // --- Forecast sheet ---
+  const fSheet = wb.SheetNames.find(n => n.toUpperCase() === 'FORECAST');
+  if (fSheet) {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[fSheet], { header: 1, defval: '' });
+    out.forecast = rows; // raw 2D array
+  }
+
+  return out;
+}
+
+/* ══════════════════════════════════════════
+   VENDOR PARSER
+══════════════════════════════════════════ */
+function parseVendorFile(wb) {
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const rawRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+  // Header names differ by FBL1N layout (short vs long labels) — accept either
+  const ALIASES={
+    Vendor:     ['Account','Vendor'],
+    DocumentNo: ['DocumentNo','Document Number','DocNo'],
+    Type:       ['Type','Document Type'],
+    PstngDate:  ['Pstng Date','Posting Date','PstngDate'],
+    DocDate:    ['Doc. Date','Document Date','DocDate'],
+    AmountUSD:  ['Amt in loc.cur.','Amount in local currency','AmountUSD'],
+    Clearing:   ['Clearing','Clearing Date'],
+    GL:         ['G/L','G/L Account','GL'],
+    ClrngDoc:   ['Clrng doc.','Clearing Document','ClrngDoc'],
+    Text:       ['Text'],
+  };
+  const docNoNames=ALIASES.DocumentNo;
+  const headerIdx=rawRows.findIndex(r=>r&&r.some(v=>v!=null&&docNoNames.includes(String(v).trim())));
+  if(headerIdx===-1){console.warn('Vendor sheet: document number header not found');return[];}
+  const colIdx={};
+  rawRows[headerIdx].forEach((h,i)=>{if(h!==null&&h!==undefined)colIdx[String(h).trim()]=i;});
+  const idxOf=field=>{for(const n of ALIASES[field]){if(colIdx[n]!==undefined)return colIdx[n];}return -1;};
+  const fieldIdx={};
+  Object.keys(ALIASES).forEach(f=>{fieldIdx[f]=idxOf(f);});
+  const get=(row,field)=>{const i=fieldIdx[field];const v=(i>=0&&i<row.length)?row[i]:null;return v==null?'':v;};
+  const result=[];
+  for(let i=headerIdx+1;i<rawRows.length;i++){
+    const row=rawRows[i];
+    if(!row||row.every(v=>v===null||v===undefined))continue;
+    const vendorId=String(get(row,'Vendor')).trim();
+    if(!vendorId||!/^\d+$/.test(vendorId))continue;
+    result.push({
+      Vendor:vendorId,
+      DocumentNo:String(get(row,'DocumentNo')).trim(),
+      Type:String(get(row,'Type')).trim(),
+      PstngDate:get(row,'PstngDate'),
+      DocDate:get(row,'DocDate'),
+      AmountUSD:get(row,'AmountUSD')||0,
+      Clearing:get(row,'Clearing'),
+      GL:String(get(row,'GL')).trim(),
+      ClrngDoc:String(get(row,'ClrngDoc')).trim(),
+      Text:get(row,'Text'),
+    });
+  }
+  return result;
+}
+
+/* ══════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════ */
+function setKPI(id, val, unit, sub, cls) {
+  const el=document.getElementById(id); if(!el) return;
+  el.className='kpi-card'+(cls?' '+cls:'');
+  el.querySelector('.kpi-value').innerHTML=val+(unit?`<span class="kpi-unit">${unit}</span>`:'');
+  el.querySelector('.kpi-sub').textContent=sub;
+}
+
+function fmt000(v) {
+  if(v===null||v===undefined||v===0) return '—';
+  const n=Math.round(v);
+  return (n<0?'('+Math.abs(n).toLocaleString('en-US')+')':n.toLocaleString('en-US'));
+}
+
+function parseD(val) {
+  if(!val) return null;
+  if(val instanceof Date) return isNaN(val)?null:val;
+  const s=String(val).trim();
+  let m=s.match(/^(\d{4})[.\-\/](\d{2})[.\-\/](\d{2})$/);
+  if(m) return new Date(+m[1],+m[2]-1,+m[3]);
+  m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(m) return new Date(+m[3],+m[1]-1,+m[2]);
+  if(!isNaN(s)&&s.length<6){const d=new Date((+s-25569)*864e5);return isNaN(d)?null:d;}
+  const d=new Date(s); return isNaN(d)?null:d;
+}
+// Paid if a clearing date or a clearing document exists (FBL1N layouts may omit the date)
+function isCleared(r){return !!((r.Clearing&&String(r.Clearing).trim())||(r.ClrngDoc&&String(r.ClrngDoc).trim()));}
+function dateDiff(a,b){const da=parseD(a),db=parseD(b);if(!da||!db)return null;return Math.round((db-da)/864e5);}
+function fmtDate(v){const d=parseD(v);if(!d)return'—';return d.toLocaleDateString('en-US',{year:'numeric',month:'2-digit',day:'2-digit'});}
+function fmtMonth(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+
+function status(type,msg){
+  const dot=document.getElementById('sdot'),txt=document.getElementById('stxt');
+  dot.className='dot'+(type?' '+type:''); txt.textContent=msg;
+}
+
+/* ─ Chart factory ─ */
+function killChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function mkChart(id,type,data,options){killChart(id);const ctx=document.getElementById(id);if(!ctx)return;charts[id]=new Chart(ctx,{type,data,options});}
+
+function barOpts({ ylabel='USD M', stacked=false, showLabels=true } = {}) {
+  const isCount=ylabel.toLowerCase().includes('count')||ylabel.toLowerCase().includes('invoice');
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ labels:{ color:'#8fada4', font:{size:11} } },
+      datalabels:{ display: showLabels,
+        color:'#1a2e24', font:{size:9,weight:'600'},
+        formatter: v => {
+          if(v===null||v===undefined||v===0) return null;
+          return isCount ? v : '$'+Number(v).toFixed(1)+'M';
+        },
+        align:'top', anchor:'end', clamp:true
+      },
+      tooltip:{ callbacks:{ label: c => {
+        const v=c.raw;
+        if(v===null||v===undefined) return `${c.dataset.label}: —`;
+        return isCount?`${c.dataset.label}: ${v}`:`${c.dataset.label}: $${Number(v).toFixed(1)}M`;
+      }}}
+    },
+    scales:{
+      x:{ ticks:{color:'#8fada4'}, grid:{color:'#e4ede9'}, stacked },
+      y:{ ticks:{color:'#8fada4', callback:v=>isCount?v:(Math.abs(v)>=1?'$'+v+'M':'$'+Number(v).toFixed(1)+'M')}, grid:{color:'#e4ede9'}, stacked }
+    }
+  };
+}
+
+function donutOpts() {
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ position:'right', labels:{ color:'#8fada4', font:{size:11} } },
+      datalabels:{ display:true, color:'#ffffff', font:{size:10,weight:'700'},
+        formatter:(v,ctx)=>{
+          const total=ctx.chart.data.datasets[0].data.reduce((a,b)=>a+(b||0),0);
+          if(!total||v<0.01) return null;
+          const pct=(v/total*100).toFixed(1);
+          return '$'+v.toFixed(1)+'M\n'+pct+'%';
+        }
+      },
+      tooltip:{ callbacks:{ label:c=>{
+        const total=c.chart.data.datasets[0].data.reduce((a,b)=>a+(b||0),0);
+        const pct=total?(c.raw/total*100).toFixed(1):0;
+        return `${c.label}: $${c.raw.toFixed(1)}M (${pct}%)`;
+      }}}
+    }
+  };
+}
+
+/* ─ Tab switch ─ */
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.querySelector(`.tab-btn[onclick="switchTab('${tab}')"]`).classList.add('active');
+}
+
+function populateVendorFilter() {
+  const sel=document.getElementById('vf-vendor');
+  Object.entries(VENDOR_CFG).forEach(([id,cfg])=>{const opt=document.createElement('option');opt.value=id;opt.textContent=`${cfg.name} (${id})`;sel.appendChild(opt);});
+}
+</script>
+</body>
+</html>

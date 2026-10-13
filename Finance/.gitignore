@@ -1,0 +1,15 @@
+# Financial data and macro workbooks never go to git (this repo is public).
+# The macro workbook also holds the upload key.
+*.xlsx
+*.xlsm
+*.xls
+~$*
+Raw data/
+_history/
+_backup_*/
+OneDrive_*/
+
+# Python
+__pycache__/
+.pytest_cache/
+.coverage
