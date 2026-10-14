@@ -17,7 +17,7 @@
   --canvas:#f3f6f4; --canvas-elevated:#ffffff;
   --hairline:#dde8e2; --ink:#1a2e24; --body:#5a7268;
   --muted:#8fada4; --on-primary:#ffffff;
-  --success:#5db88a; --warning:#f0a855; --danger:#e07878; --info:#7eb5d4;
+  --success:#5db88a; --warning:#f0a855; --danger:#e07878; --info:#7eb5d4; --negative:#d64545;
   --xxxs:4px;--xxs:8px;--xs:16px;--sm:24px;--md:32px;--lg:48px;--xl:64px;--xxl:96px;
   --radius:8px;--radius-sm:6px;
 }
@@ -54,7 +54,7 @@ body{font-family:'Inter',-apple-system,system-ui,sans-serif;background:var(--can
 .month-selector select:focus{outline:none;border-color:var(--primary);}
 
 /* Upload Zone */
-.upload-zone{margin:var(--md);border:2px dashed var(--primary);border-radius:var(--radius);padding:var(--lg) var(--md);text-align:center;background:#f0fdf8;cursor:pointer;transition:border-color .2s,background .2s;}
+.upload-zone{display:none;margin:var(--md);border:2px dashed var(--primary);border-radius:var(--radius);padding:var(--lg) var(--md);text-align:center;background:#f0fdf8;cursor:pointer;transition:border-color .2s,background .2s;}
 .upload-zone:hover{border-color:var(--primary-active);background:#e6faf3;}
 .upload-zone input{display:none;}
 .btn-primary{display:inline-block;background:var(--primary);color:var(--on-primary);border:none;padding:10px 24px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-radius:var(--radius-sm);transition:background .15s;}
@@ -77,12 +77,15 @@ body{font-family:'Inter',-apple-system,system-ui,sans-serif;background:var(--can
 .kpi-card.hi{border-top-color:var(--primary);}
 .kpi-label{font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
 .kpi-value{font-size:28px;font-weight:600;letter-spacing:-.5px;color:var(--ink);line-height:1.1;}
+.kpi-value.neg,.neg{color:var(--negative);}
 .kpi-unit{font-size:14px;font-weight:400;color:var(--body);}
 .kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;}
 
 /* Chart grid */
 .chart-row{display:grid;gap:12px;margin-bottom:12px;}
 .two-col{grid-template-columns:1fr 1fr;}
+.pfe-card{display:flex;flex-direction:column;min-width:0;}
+.pfe-card.scroll .tbl-wrap{flex:1 1 0;height:0;min-height:320px;max-height:none;overflow-y:auto;}
 .one-col{grid-template-columns:1fr;}
 .chart-card{background:var(--canvas-elevated);padding:var(--sm);border-radius:var(--radius);border:1px solid var(--hairline);box-shadow:0 1px 3px rgba(0,0,0,.04);}
 .chart-title{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:2px;}
@@ -112,6 +115,30 @@ table.dt .row-sub td:first-child{padding-left:28px;}
 .badge-paid{background:#d1fae5;color:#065f46;}
 .badge-actual{background:#e0f2fe;color:#0369a1;}
 .badge-fcst{background:#f3e8ff;color:#6b21a8;}
+.badge-pfe{background:#d1fae5;color:#065f46;}
+.badge-nonpfe{background:#eef1f0;color:#5a7268;}
+.pd-row{position:relative;height:38px;margin-bottom:10px;background:#f1f4f8;border:1px solid #e3e8ef;border-radius:4px;overflow:hidden;}
+.pd-fill{position:absolute;inset:0 auto 0 0;}
+.pd-label{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--ink);}
+.pd-pct{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:13px;font-weight:700;color:#1f5c99;}
+.spend-tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;}
+.spend-tbl th{background:#1f5c99;color:#fff;font-weight:600;text-align:left;padding:10px 12px;border-right:1px solid #2f6dab;}
+.spend-tbl td{padding:9px 12px;border-bottom:1px solid #e3e8ef;border-right:1px solid #eef1f5;vertical-align:middle;}
+.spend-tbl tr:nth-child(even) td{background:#f4f7fb;}
+.spend-rank{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;color:#fff;font-size:12px;font-weight:700;}
+.spend-pill{display:inline-block;min-width:150px;padding:5px 10px;background:#e7f1fb;border:1px solid #b9d3ee;border-radius:3px;color:#1f5c99;font-size:12px;}
+.spend-bar{height:16px;background:#eef1f5;position:relative;}
+.spend-amt{text-align:right;font-weight:700;color:var(--ink);font-size:12px;margin-top:2px;}
+.cmp-tbl{width:100%;border-collapse:collapse;font-size:11.5px;}
+.cmp-tbl th{background:#1f5c99;color:#fff;font-weight:600;padding:6px 5px;border:1px solid #2f6dab;text-align:center;white-space:nowrap;}
+.cmp-tbl th.sub{background:#e7f1fb;color:#1f5c99;font-weight:600;}
+.cmp-tbl td{padding:6px 5px;border:1px solid #e3e8ef;text-align:right;white-space:nowrap;}
+.cmp-tbl td.cust{text-align:left;color:var(--body);}
+.cmp-tbl td.name{text-align:left;white-space:normal;min-width:150px;max-width:190px;}
+.cmp-tbl td.grp{border-left:2px solid #b9d3ee;}
+.cmp-tbl tr:nth-child(even) td{background:#f7f9fc;}
+.cmp-up{color:#2d8f65;}.cmp-down{color:#d64545;}.cmp-big{font-weight:800;}
+.pd-note{margin-top:6px;padding:7px 12px;font-size:12px;color:#7a4a12;background:#fff4e5;border:1px solid #f2b56b;border-radius:3px;}
 
 /* Responsive */
 @media(max-width:1100px){.kpi-row{grid-template-columns:repeat(3,1fr);}.two-col{grid-template-columns:1fr;}}
@@ -149,6 +176,12 @@ table.dt .row-sub td:first-child{padding-left:28px;}
       </svg>
       <span>Financials</span>
     </button>
+    <button class="tab-btn" onclick="switchTab('projects')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+      </svg>
+      <span>Projects</span>
+    </button>
     <button class="tab-btn" onclick="switchTab('vendor')">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
@@ -156,11 +189,17 @@ table.dt .row-sub td:first-child{padding-left:28px;}
       </svg>
       <span>Vendor Payments</span>
     </button>
-    <button class="tab-btn" onclick="switchTab('projects')">
+    <button class="tab-btn" onclick="switchTab('ampc')">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
       </svg>
-      <span>Projects</span>
+      <span>AMPC (PFE Tracking)</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('pipeline')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      <span>Sales Pipeline vs SAP</span>
     </button>
   </nav>
   <div class="sidebar-footer">
@@ -175,7 +214,7 @@ table.dt .row-sub td:first-child{padding-left:28px;}
 <!-- Status Bar -->
 <div class="status-bar">
   <div style="color:var(--muted)" id="sinfo"></div>
-  <div class="month-selector">
+  <div class="month-selector" id="month-selector">
     <label>Month</label>
     <select id="global-month" onchange="onGlobalMonthChange()">
       <option value="">All / Latest</option>
@@ -202,7 +241,10 @@ table.dt .row-sub td:first-child{padding-left:28px;}
 
 <!-- TAB 1: Financials -->
 <div id="tab-fs" class="tab-content">
-  <div class="section-label" style="margin-bottom:var(--xs)">Key Financial Ratios</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--xs)">
+    <div class="section-label">Key Financial Ratios</div>
+    <div class="month-slot"></div>
+  </div>
   <div class="kpi-row" id="fs-kpis">
     <div class="kpi-card" id="kc-debt"><div class="kpi-label">Debt-to-Equity</div><div class="kpi-value kv">—<span class="kpi-unit">%</span></div><div class="kpi-sub">Total Liabilities / Equity</div></div>
     <div class="kpi-card" id="kc-cur"><div class="kpi-label">Current Ratio</div><div class="kpi-value kv">—<span class="kpi-unit">%</span></div><div class="kpi-sub">Current Assets / Current Liabilities</div></div>
@@ -211,40 +253,24 @@ table.dt .row-sub td:first-child{padding-left:28px;}
     <div class="kpi-card" id="kc-net"><div class="kpi-label">Net Margin</div><div class="kpi-value kv">—<span class="kpi-unit">%</span></div><div class="kpi-sub">Net Income / Sales</div></div>
   </div>
   <div class="chart-row two-col">
-    <div class="chart-card"><div class="chart-title">Capital Structure</div><div class="chart-sub">Total Assets Breakdown (USD M)</div><div class="chart-wrap" style="height:280px"><canvas id="cc-capital"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">Current Assets Composition</div><div class="chart-sub">Current Assets Breakdown (Selected Month)</div><div class="chart-wrap" style="height:280px"><canvas id="cc-ca-donut"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Revenue &amp; Profit Trend</div><div class="chart-sub">Revenue (Bar), Operating Income &amp; Net Income (Line), USD Million</div><div class="chart-wrap" style="height:280px"><canvas id="cc-revenue"></canvas></div></div>
   </div>
   <div class="chart-row one-col">
     <div class="chart-card"><div class="chart-title">Debt-to-Equity &amp; Current Ratio — Monthly Trend</div><div class="chart-sub">Ratio trend over time</div><div class="chart-wrap" style="height:220px"><canvas id="cc-ratio-trend"></canvas></div></div>
   </div>
   <div class="chart-row two-col">
-    <div class="chart-card"><div class="chart-title">Revenue &amp; Profit Trend</div><div class="chart-sub">Revenue (Bar), Operating Income &amp; Net Income (Line), USD M</div><div class="chart-wrap" style="height:280px"><canvas id="cc-revenue"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">Cost Structure Waterfall</div><div class="chart-sub">Revenue → Net Income decomposition (Selected Month, USD M)</div><div class="chart-wrap" style="height:280px"><canvas id="cc-waterfall"></canvas></div></div>
-  </div>
-  <div class="chart-row two-col">
     <div class="chart-card"><div class="chart-title">Manufacturing Cost Breakdown</div><div class="chart-sub">Material / Labor / Overhead (Selected Month)</div><div class="chart-wrap" style="height:260px"><canvas id="cc-mfg"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">Debt Composition</div><div class="chart-sub">Short-term vs Long-term Debt (USD M)</div><div class="chart-wrap" style="height:260px"><canvas id="cc-debt-comp"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Debt Composition</div><div class="chart-sub">Short-term vs Long-term Debt (USD Million)</div><div class="chart-wrap" style="height:260px"><canvas id="cc-debt-comp"></canvas></div></div>
   </div>
   <div class="chart-row one-col">
     <div class="chart-card">
       <div class="chart-title">Working Capital</div>
       <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:4px">
-        <div class="chart-sub" style="margin-bottom:0">Trade Receivables + Inventories − Trade Payables (USD M)</div>
+        <div class="chart-sub" style="margin-bottom:0">Trade Receivables + Inventories − Trade Payables (USD Million)</div>
         <div id="wc-value" style="font-size:15px;font-weight:700;"></div>
       </div>
       <div class="chart-wrap" style="height:220px"><canvas id="cc-wc"></canvas></div>
-    </div>
-  </div>
-  <div class="chart-row two-col">
-    <div class="chart-card">
-      <div class="chart-title">P&amp;L Waterfall</div>
-      <div class="chart-sub">Revenue → Net Income (Selected Month, USD M)</div>
-      <div class="chart-wrap" style="height:280px"><canvas id="pl-waterfall"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Monthly P&amp;L Trend</div>
-      <div class="chart-sub">Sales (bar), Gross Profit / OI / Net Income (line) — USD M</div>
-      <div class="chart-wrap" style="height:280px"><canvas id="pl-trend"></canvas></div>
     </div>
   </div>
 </div><!-- /tab-fs -->
@@ -253,9 +279,12 @@ table.dt .row-sub td:first-child{padding-left:28px;}
 <!-- TAB 2: Earnings & Outlook -->
 <div id="tab-earnings" class="tab-content active">
 
-  <div class="section-label" style="margin-bottom:var(--xs)">P&amp;L Income Statement</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--xs)">
+    <div class="section-label">P&amp;L Income Statement</div>
+    <div class="month-slot"></div>
+  </div>
   <div class="kpi-row" id="pl-kpis">
-    <div class="kpi-card hi" id="pkc-sales"><div class="kpi-label">Sales</div><div class="kpi-value kv">—<span class="kpi-unit">M</span></div><div class="kpi-sub">USD M</div></div>
+    <div class="kpi-card hi" id="pkc-sales"><div class="kpi-label">Sales</div><div class="kpi-value kv">—<span class="kpi-unit">M</span></div><div class="kpi-sub">USD Million</div></div>
     <div class="kpi-card" id="pkc-gp"><div class="kpi-label">Gross Profit</div><div class="kpi-value kv">—<span class="kpi-unit">M</span></div><div class="kpi-sub">GP Margin: —%</div></div>
     <div class="kpi-card" id="pkc-oi"><div class="kpi-label">Operating Income</div><div class="kpi-value kv">—<span class="kpi-unit">M</span></div><div class="kpi-sub">OI Margin: —%</div></div>
     <div class="kpi-card" id="pkc-ebitda"><div class="kpi-label">EBITDA</div><div class="kpi-value kv">—<span class="kpi-unit">M</span></div><div class="kpi-sub">EBITDA Margin: —%</div></div>
@@ -265,12 +294,17 @@ table.dt .row-sub td:first-child{padding-left:28px;}
   <div class="chart-card" style="margin-bottom:12px">
     <div class="chart-title">P&amp;L Monthly Breakdown</div>
     <div class="chart-sub">'000 USD — Actual Monthly</div>
-    <div class="tbl-wrap" style="margin-top:var(--xs);max-height:360px">
+    <div class="tbl-wrap" style="margin-top:var(--xs);max-height:none">
       <table class="dt" id="pl-table">
         <thead id="pl-thead"></thead>
         <tbody id="pl-tbody"><tr><td colspan="15" style="text-align:center;padding:32px;color:var(--muted)">No data — select files</td></tr></tbody>
       </table>
     </div>
+  </div>
+  <div class="chart-card" style="margin-bottom:12px">
+    <div class="chart-title">P&amp;L Monthly Trend</div>
+    <div class="chart-sub">Sales (upper band) · Gross Profit / Operating Income / Net Income with % of sales (lower band) — USD Million, axis cut at the wavy line</div>
+    <div class="chart-wrap" style="height:320px"><canvas id="pl-actual-trend"></canvas></div>
   </div>
 
   <div class="section-label" style="margin:var(--sm) 0 var(--xs)">Rolling Forecast — P&amp;L Summary</div>
@@ -279,12 +313,17 @@ table.dt .row-sub td:first-child{padding-left:28px;}
       <div class="chart-title" id="fcst-title">Rolling Forecast</div>
       <div class="chart-sub" id="fcst-sub" style="margin-bottom:0">'000 USD</div>
     </div>
-    <div class="tbl-wrap" style="margin-top:var(--xs);max-height:480px;overflow-x:auto;">
+    <div class="tbl-wrap" style="margin-top:var(--xs);max-height:none;overflow-x:auto;">
       <table class="dt" id="fcst-table" style="min-width:900px">
         <thead id="fcst-thead"></thead>
         <tbody id="fcst-tbody"><tr><td colspan="14" style="text-align:center;padding:32px;color:var(--muted)">No forecast data — select files</td></tr></tbody>
       </table>
     </div>
+  </div>
+  <div class="chart-card" style="margin-top:12px">
+    <div class="chart-title">Full-Year Outlook by Forecast Version</div>
+    <div class="chart-sub">Full-year Total of each Rolling Forecast (1+11 → latest) — Sales (upper band) · Gross Profit / Operating Income(Exc.HQ) / Net Income(Exc.HQ) with % of sales (lower band), USD Million</div>
+    <div class="chart-wrap" style="height:320px"><canvas id="fcst-history"></canvas></div>
   </div>
 
 </div><!-- /tab-earnings -->
@@ -292,43 +331,32 @@ table.dt .row-sub td:first-child{padding-left:28px;}
 
 <!-- TAB 3: Vendor Payments -->
 <div id="tab-vendor" class="tab-content">
-  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:var(--xs)">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--xs)">
     <div class="section-label">Vendor Payment Summary</div>
-    <div id="vendor-data-asof" style="font-size:11px;color:var(--muted)"></div>
+    <div style="display:flex;align-items:center;gap:16px"><div id="vendor-data-asof" style="font-size:11px;color:var(--muted)"></div><div class="month-slot"></div></div>
   </div>
   <div class="kpi-row" id="v-kpis">
-    <div class="kpi-card" id="vkc-vendors"><div class="kpi-label">Active Vendors</div><div class="kpi-value kv">—</div><div class="kpi-sub">Vendors in view</div></div>
+    <div class="kpi-card" id="vkc-vendors"><div class="kpi-label">Active Vendors</div><div class="kpi-value kv">—</div><div class="kpi-sub">Vendors with invoices</div></div>
     <div class="kpi-card" id="vkc-total"><div class="kpi-label">Total Invoices</div><div class="kpi-value kv">—</div><div class="kpi-sub">RE type invoices</div></div>
     <div class="kpi-card warn" id="vkc-open"><div class="kpi-label">Open Invoices</div><div class="kpi-value kv">—</div><div class="kpi-sub">Awaiting payment</div></div>
     <div class="kpi-card warn" id="vkc-amt"><div class="kpi-label">Outstanding Amount</div><div class="kpi-value kv">—<span class="kpi-unit">M</span></div><div class="kpi-sub">Open invoice total (USD)</div></div>
     <div class="kpi-card" id="vkc-days"><div class="kpi-label">Avg Payment Days</div><div class="kpi-value kv">—<span class="kpi-unit">d</span></div><div class="kpi-sub">Cleared invoices only</div></div>
   </div>
-  <div class="filter-row">
-    <select class="filter-select" id="vf-vendor" onchange="renderVendorTab()"><option value="">All Vendors</option></select>
-    <select class="filter-select" id="vf-category" onchange="renderVendorTab()">
-      <option value="">All Categories</option>
-      <option>Steel</option><option>Flange</option>
-      <option>Internal</option><option>Door</option><option>Wire &amp; Flux</option>
-    </select>
-    <select class="filter-select" id="vf-status" onchange="renderVendorTab()">
-      <option value="">All</option><option value="OPEN">Open Only</option><option value="PAID">Paid Only</option>
-    </select>
-  </div>
   <div class="chart-card" style="margin-bottom:12px">
-    <div class="chart-title">Open Invoice Summary by Vendor</div>
-    <div class="chart-sub">Open invoices only — outstanding amount per vendor</div>
-    <div class="tbl-wrap" style="margin-top:var(--xs);max-height:220px">
+    <div class="chart-title">Top 10 Vendors — Open Invoices</div>
+    <div class="chart-sub">All vendors, ranked by outstanding amount of open (uncleared) RE invoices</div>
+    <div class="tbl-wrap" style="margin-top:var(--xs);max-height:none">
       <table class="dt" id="v-open-summary">
-        <thead><tr><th>Vendor</th><th>Category</th><th style="text-align:right">Outstanding (USD)</th></tr></thead>
-        <tbody id="v-open-summary-body"><tr><td colspan="3" style="text-align:center;padding:24px;color:var(--muted)">No data</td></tr></tbody>
+        <thead><tr><th style="width:44px;text-align:center">#</th><th>Vendor</th><th style="width:110px">Vendor Code</th><th>Category</th><th style="text-align:right">Open Invoices</th><th style="text-align:right">Outstanding (USD)</th><th style="text-align:right;width:150px">Share</th></tr></thead>
+        <tbody id="v-open-summary-body"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No data</td></tr></tbody>
       </table>
     </div>
   </div>
   <div class="chart-row one-col">
-    <div class="chart-card"><div class="chart-title">Avg Payment Days by Vendor</div><div class="chart-sub">Cleared invoices only</div><div class="chart-wrap" style="height:280px"><canvas id="vc-avgdays"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Payment Days Distribution (% of Total Amount)</div><div class="chart-sub">Cleared RE invoices of all vendors — actual payment days (clearing date − invoice date), share of total amount</div><div id="v-paydist" style="margin-top:var(--xs)"><div style="color:var(--muted);padding:24px;text-align:center">No cleared invoices</div></div></div>
   </div>
   <div class="chart-row one-col">
-    <div class="chart-card"><div class="chart-title">Open Invoice Aging</div><div class="chart-sub">Outstanding amount by age bucket — vendor on Y-axis (USD M)</div><div class="chart-wrap" style="height:300px"><canvas id="vc-aging"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title" style="font-size:18px;letter-spacing:.5px;color:#1f5c99;text-transform:uppercase;font-weight:800">Top 10 Vendors by Total Spend</div><div class="chart-sub" id="v-spend-sub">Invoice documents of all vendors (RE, KR, KG, SA, AX, TX), net amount</div><div style="margin-top:var(--xs);overflow-x:auto"><table class="spend-tbl"><thead><tr><th style="width:56px;text-align:center">#</th><th>Vendor Name</th><th style="width:200px">Classification</th><th>Payment Terms</th><th style="width:260px">Amount</th></tr></thead><tbody id="v-spend-body"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">No vendor spend data</td></tr></tbody></table></div></div>
   </div>
   <div class="chart-card">
     <div class="chart-title">Invoice Detail</div>
@@ -345,9 +373,9 @@ table.dt .row-sub td:first-child{padding-left:28px;}
 
 <!-- TAB 4: Projects -->
 <div id="tab-projects" class="tab-content">
-  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:var(--xs)">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--xs)">
     <div class="section-label">Project Profitability</div>
-    <div id="proj-asof" style="font-size:11px;color:var(--muted)"></div>
+    <div style="display:flex;align-items:center;gap:16px"><div id="proj-asof" style="font-size:11px;color:var(--muted)"></div><div class="month-slot"></div></div>
   </div>
   <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)" id="proj-kpis">
     <div class="kpi-card" id="pkc-rev"><div class="kpi-label">Total Revenue</div><div class="kpi-value kv">—<span class="kpi-unit">M</span></div><div class="kpi-sub">Latest month (USD)</div></div>
@@ -361,23 +389,112 @@ table.dt .row-sub td:first-child{padding-left:28px;}
     <select class="filter-select" id="pf-project" onchange="renderProjectsTab()"><option value="">All Projects</option></select>
   </div>
   <div class="chart-row two-col">
-    <div class="chart-card"><div class="chart-title">Revenue &amp; P&amp;L by Project</div><div class="chart-sub">USD M — latest month (or selected month)</div><div class="chart-wrap" style="height:280px"><canvas id="pc-revpl"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Revenue &amp; Operating Income by Project</div><div class="chart-sub">USD Million — latest month (or selected month)</div><div class="chart-wrap" style="height:280px"><canvas id="pc-revpl"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">Margin % by Project</div><div class="chart-sub">P&amp;L / Revenue per project</div><div class="chart-wrap" style="height:280px"><canvas id="pc-margin"></canvas></div></div>
-  </div>
-  <div class="chart-row one-col">
-    <div class="chart-card"><div class="chart-title">Monthly Revenue &amp; Profit Trend</div><div class="chart-sub">All projects combined — USD M</div><div class="chart-wrap" style="height:220px"><canvas id="pc-trend"></canvas></div></div>
   </div>
   <div class="chart-card">
     <div class="chart-title">Project Detail</div>
     <div class="chart-sub">All months — sorted by month desc</div>
     <div class="tbl-wrap" style="margin-top:var(--xs)">
       <table class="dt" id="ptable">
-        <thead><tr><th>Month</th><th>Customer</th><th>Project</th><th style="text-align:right">Qty</th><th style="text-align:right">Revenue (USD)</th><th style="text-align:right">Cost (USD)</th><th style="text-align:right">P&amp;L (USD)</th><th style="text-align:right">Margin %</th></tr></thead>
+        <thead><tr><th>Month</th><th>Customer</th><th>Project</th><th style="text-align:right">Qty</th><th style="text-align:right">Revenue (USD)</th><th style="text-align:right">Cost (USD)</th><th style="text-align:right">Gross Profit (USD)</th><th style="text-align:right">Margin %</th></tr></thead>
         <tbody id="ptbody"><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">No data</td></tr></tbody>
       </table>
     </div>
   </div>
 </div><!-- /tab-projects -->
+
+<!-- ═══ AMPC (PFE TRACKING) TAB ═══ -->
+<div id="tab-ampc" class="tab-content">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--xs)">
+    <div class="section-label">AMPC (PFE Tracking)</div>
+    <div class="month-slot"></div>
+  </div>
+  <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)" id="pfe-kpis">
+    <div class="kpi-card hi" id="pfe-kc-total"><div class="kpi-label">Vendors</div><div class="kpi-value kv">—</div><div class="kpi-sub">PFE vendor list</div></div>
+    <div class="kpi-card good" id="pfe-kc-pfe"><div class="kpi-label">PFE</div><div class="kpi-value kv">—</div><div class="kpi-sub">Prohibited foreign entity</div></div>
+    <div class="kpi-card" id="pfe-kc-non"><div class="kpi-label">Non-PFE</div><div class="kpi-value kv">—</div><div class="kpi-sub">Not a PFE</div></div>
+    <div class="kpi-card warn" id="pfe-kc-share"><div class="kpi-label">PFE Share</div><div class="kpi-value kv">—</div><div class="kpi-sub">PFE amount / total amount (projects below)</div></div>
+  </div>
+  <div class="filter-row">
+    <select class="filter-select" id="pfe-f-cat" onchange="renderAmpcTab()"><option value="">All Categories</option></select>
+    <input class="filter-select" id="pfe-f-search" type="search" placeholder="Search vendor name or code" oninput="renderAmpcTab()" style="min-width:240px">
+  </div>
+  <div class="chart-row two-col">
+    <div class="chart-card pfe-card">
+      <div style="display:flex;align-items:center;gap:8px"><span class="badge badge-nonpfe">Non-PFE</span><div class="chart-title" style="margin:0">Non-PFE Vendors</div></div>
+      <div class="chart-sub" id="pfe-count-non">—</div>
+      <div class="tbl-wrap" style="margin-top:var(--xs);max-height:none">
+        <table class="dt">
+          <thead><tr><th style="width:100px">Vendor Code</th><th>Vendor</th><th>Category</th></tr></thead>
+          <tbody id="pfe-tbody-non"><tr><td colspan="3" style="text-align:center;padding:32px;color:var(--muted)">No PFE vendor data — add the ZMM009 file to Raw data/PFE and run the monthly update</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="chart-card pfe-card scroll">
+      <div style="display:flex;align-items:center;gap:8px"><span class="badge badge-pfe">PFE</span><div class="chart-title" style="margin:0">PFE Vendors</div></div>
+      <div class="chart-sub" id="pfe-count-pfe">—</div>
+      <div class="tbl-wrap" style="margin-top:var(--xs)">
+        <table class="dt">
+          <thead><tr><th style="width:100px">Vendor Code</th><th>Vendor</th><th>Category</th></tr></thead>
+          <tbody id="pfe-tbody-pfe"><tr><td colspan="3" style="text-align:center;padding:32px;color:var(--muted)">No PFE vendor data — add the ZMM009 file to Raw data/PFE and run the monthly update</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="chart-card" style="margin-top:12px">
+    <div class="chart-title">PFE Ratio by Project</div>
+    <div class="chart-sub">Projects in the ZMM009 PIVOT sheet — invoice amounts from the 2025 + 2026 sheets split by the vendor's PFE status (vendors not on the PFE list excluded), USD</div>
+    <div class="tbl-wrap" style="margin-top:var(--xs);max-height:none">
+      <table class="dt" id="pfe-proj-table">
+        <thead><tr>
+          <th>Project</th>
+          <th style="text-align:right">Non-PFE Amount</th>
+          <th style="text-align:right">PFE Amount</th>
+          <th style="text-align:right">Total Amount</th>
+          <th style="text-align:right;width:180px">PFE (Ratio)</th>
+        </tr></thead>
+        <tbody id="pfe-proj-tbody"><tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)">No project data — add the ZMM009 file to Raw data/PFE and run the monthly update</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div><!-- /tab-ampc -->
+
+<!-- ═══ SALES PIPELINE VS SAP TAB ═══ -->
+<div id="tab-pipeline" class="tab-content">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--xs)">
+    <div class="section-label">Sales Pipeline vs SAP</div>
+    <div class="month-slot"></div>
+  </div>
+  <div class="chart-card">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+      <div class="chart-title">Per-Section Revenue &amp; Material Cost — Pipeline vs SAP</div>
+      <div style="font-size:11px;color:var(--muted);white-space:nowrap">Unit: USD K per section</div>
+    </div>
+    <div style="margin-top:var(--xs);overflow-x:auto">
+      <table class="cmp-tbl">
+        <thead>
+          <tr>
+            <th rowspan="2" style="text-align:left">Customer</th>
+            <th rowspan="2" style="text-align:left">Project</th>
+            <th rowspan="2">Sec/<br>Tower</th>
+            <th rowspan="2">SAP<br>Sections</th>
+            <th colspan="3">Revenue</th><th colspan="3">Steel</th><th colspan="3">Flange</th>
+            <th colspan="3">Internal</th><th colspan="3">Door Frame</th>
+          </tr>
+          <tr>
+            <th class="sub">Pipeline</th><th class="sub">SAP</th><th class="sub">Δ</th>
+            <th class="sub">Pipeline</th><th class="sub">SAP</th><th class="sub">Δ</th>
+            <th class="sub">Pipeline</th><th class="sub">SAP</th><th class="sub">Δ</th>
+            <th class="sub">Pipeline</th><th class="sub">SAP</th><th class="sub">Δ</th>
+            <th class="sub">Pipeline</th><th class="sub">SAP</th><th class="sub">Δ</th>
+          </tr>
+        </thead>
+        <tbody id="cmp-tbody"><tr><td colspan="19" style="text-align:center;padding:32px;color:var(--muted)">No data — add the Sales Pipeline file and run the monthly update</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div><!-- /tab-pipeline -->
 
 </main>
 </div><!-- /page-wrap -->
@@ -409,6 +526,14 @@ let vendorRows    = [];
 let projectRows   = [];
 let forecastData  = null; // parsed forecast object (from standalone FCST files)
 let forecastRawData = null; // raw 2D array from Forecast sheet in dashboard_data.xlsx
+let forecastHistory = [];   // full-year totals per forecast version (ForecastHistory sheet)
+let pfeVendors = [];        // AMPC tab: PFE vendor list (PFEVendors sheet)
+let vendorNames = {};       // vendor code → name (VendorNames sheet)
+let vendorSpend = [];       // total spend per vendor, largest first (VendorSpend sheet)
+let pipelineCompare = [];   // Sales Pipeline vs SAP rows (PipelineVsSAP sheet)
+let vendorCats = {};        // vendor code → {CostCategory, RuleCategory, MaterialCategory} (VendorCategories sheet)
+let pfeProjects = [];       // AMPC tab: PFE / Non-PFE amounts by SAP project (PFEProjects sheet)
+let pfeTable = [];          // AMPC tab: the PIVOT-sheet projects in display order (PFEProjectTable sheet)
 let charts        = {};
 
 /* ── BOOT ───────────────────────────────── */
@@ -423,6 +548,7 @@ let charts        = {};
 document.addEventListener('DOMContentLoaded', () => {
   // Set up Chart.js defaults — guard in case CDN is blocked/slow
   if (typeof Chart !== 'undefined') {
+    try { Chart.register(axisBreakPlugin); } catch(e) { console.warn('axis break plugin failed:', e); }
     try {
       Chart.defaults.color        = '#5a7268';
       Chart.defaults.borderColor  = '#dde8e2';
@@ -434,13 +560,21 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       Chart.register(ChartDataLabels);
       Chart.defaults.plugins.datalabels.display = false;
+      // White halo keeps every value label readable over lines, fills and bars
+      Chart.defaults.plugins.datalabels.textStrokeColor = 'rgba(255,255,255,.9)';
+      Chart.defaults.plugins.datalabels.textStrokeWidth = 3;
+      // Headroom so labels on the highest/lowest points are not clipped or under the legend
+      Chart.defaults.scales.linear.grace = '15%';
+      Chart.defaults.layout.padding = { top: 8, right: 12, bottom: 0, left: 4 };
     } catch(e) { console.warn('chartjs-plugin-datalabels not available', e); }
   } else {
     console.warn('Chart.js not loaded — charts will not render');
     status('err', 'Chart.js 로드 실패 — 인터넷 연결을 확인하세요');
   }
 
-  try { populateVendorFilter(); } catch(e) { console.warn('populateVendorFilter failed:', e); }
+
+  const activeTab = document.querySelector('.tab-content.active');
+  if (activeTab) placeMonthSelector(activeTab.id.replace('tab-', ''));
 
   if (location.protocol === 'file:') {
     document.getElementById('upload-zone').style.display = 'block';
@@ -746,6 +880,14 @@ function mergeAndRender(found) {
         newVendor.push(...m.vendor);
         newProject.push(...m.project);
         if (m.forecast) forecastRawData = m.forecast;
+        if (m.forecastHistory.length) forecastHistory = m.forecastHistory;
+        if (m.pfeVendors.length) pfeVendors = m.pfeVendors;
+        if (Object.keys(m.vendorNames).length) vendorNames = m.vendorNames;
+        if (m.vendorSpend.length) vendorSpend = m.vendorSpend;
+        if (Object.keys(m.vendorCats).length) vendorCats = m.vendorCats;
+        if (m.pipelineCompare.length) pipelineCompare = m.pipelineCompare;
+        if (m.pfeProjects.length) pfeProjects = m.pfeProjects;
+        if (m.pfeTable.length) pfeTable = m.pfeTable;
         loaded.push(f.name);
       } else if (f.type==='closing') {
         newFs.push(...parseClosingPkg(wb, f.name));
@@ -805,6 +947,8 @@ function mergeAndRender(found) {
 }
 
 function renderAll() {
+  renderAmpcTab();
+  renderPipelineCompare();
   renderFSTab();
   renderEarningsTab();
   renderVendorTab();
@@ -857,6 +1001,7 @@ function renderFSTab() {
   const months=rows.map(r=>r.Month);
   // Data is in '000 USD → divide by 1000 for USD M
   const M=v=>Math.abs(v||0)/1000;
+  const S=v=>(v||0)/1000;  // signed — profits can be losses
 
   const debtRatio    = L.Equity ? M(L.TotalLiabilities)/M(L.Equity)*100 : 0;
   const currentRatio = L.CurrentLiabilities ? M(L.CurrentAssets)/M(L.CurrentLiabilities)*100 : 0;
@@ -869,35 +1014,6 @@ function renderFSTab() {
   setKPI('kc-quick', quickRatio.toFixed(1),'%','(Cash + Receivables) / Current Liabilities', quickRatio<50?'warn':quickRatio>100?'good':'');
   setKPI('kc-op',    opMargin.toFixed(1),'%','Operating Income / Sales', opMargin<0?'warn':opMargin>10?'good':'');
   setKPI('kc-net',   netMargin.toFixed(1),'%','Net Income / Sales', netMargin<0?'warn':netMargin>5?'good':'');
-
-  // 1. Capital structure stacked bar
-  mkChart('cc-capital','bar',{
-    labels:months,
-    datasets:[
-      { label:'Short-term Debt', stack:'s', backgroundColor:'#e07878', data:rows.map(r=>M(r.ShortTermDebt||0)) },
-      { label:'Long-term Debt',  stack:'s', backgroundColor:'#c8877a', data:rows.map(r=>M(r.LongTermDebt||0)) },
-      { label:'Other Liabilities', stack:'s', backgroundColor:'#b0bcb8',
-        data:rows.map(r=>M(Math.max(0,Math.abs(r.TotalLiabilities)-Math.abs(r.ShortTermDebt||0)-Math.abs(r.LongTermDebt||0)))) },
-      { label:'Equity', stack:'s', backgroundColor:'#7eb5d4', data:rows.map(r=>M(r.Equity)) }
-    ]
-  },{
-    responsive:true, maintainAspectRatio:false,
-    plugins:{
-      legend:{ labels:{ color:'#8fada4' } },
-      datalabels:{
-        display:true,
-        color:'#fff',
-        font:{ size:9, weight:'600' },
-        formatter:(v)=> Math.abs(v) >= 0.5 ? '$'+Number(v).toFixed(1)+'M' : null,
-        align:'center', anchor:'center'
-      },
-      tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: $${Number(c.raw).toFixed(1)}M` } }
-    },
-    scales:{
-      x:{ ticks:{color:'#8fada4'}, grid:{color:'#e4ede9'}, stacked:true },
-      y:{ ticks:{color:'#8fada4', callback:v=>'$'+v+'M'}, grid:{color:'#e4ede9'}, stacked:true }
-    }
-  });
 
   // 2. Current assets donut
   const caOther=Math.max(0,M(L.CurrentAssets)-M(L.Cash||0)-M(L.TradeReceivables||0)-M(L.Inventories||0));
@@ -913,76 +1029,67 @@ function renderFSTab() {
     datasets:[
       { label:'D/E Ratio %', yAxisID:'y',
         data:rows.map(r=>r.Equity?(Math.abs(r.TotalLiabilities)/Math.abs(r.Equity)*100).toFixed(1):null),
-        borderColor:'#e07878', backgroundColor:'rgba(224,120,120,.1)', tension:.35, fill:true,
-        pointRadius:4, pointHoverRadius:6 },
+        borderColor:'#e07878', backgroundColor:'rgba(224,120,120,.06)', tension:.35, fill:true,
+        pointRadius:4, pointHoverRadius:6,
+        datalabels:smartLineLabel('#c05a5a', v=>v?v+'%':null) },
       { label:'Current Ratio %', yAxisID:'y2',
         data:rows.map(r=>r.CurrentLiabilities?(Math.abs(r.CurrentAssets)/Math.abs(r.CurrentLiabilities)*100).toFixed(1):null),
         borderColor:'#7eb5d4', backgroundColor:'transparent', tension:.35, borderDash:[5,3],
-        pointRadius:4, pointHoverRadius:6 }
+        pointRadius:4, pointHoverRadius:6,
+        datalabels:smartLineLabel('#3f86ad', v=>v?v+'%':null) }
     ]
   },{
     responsive:true, maintainAspectRatio:false,
     plugins:{
-      legend:{ labels:{ color:'#8fada4' } },
-      datalabels:{ display:true, color:ctx=>ctx.datasetIndex===0?'#e07878':'#7eb5d4', font:{size:10,weight:'600'},
-        formatter:v=>v?v+'%':null, align:'top', anchor:'end' },
+      legend:{ labels:{ color:'#8fada4', padding:16 } },
       tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: ${c.raw}%` } }
     },
     scales:{
       x:{ ticks:{color:'#8fada4'}, grid:{color:'#e4ede9'} },
-      y:{ position:'left', ticks:{color:'#e07878',callback:v=>v+'%'}, grid:{color:'#e4ede9'},
+      y:{ position:'left', grace:'25%', ticks:{color:'#e07878',callback:v=>v+'%'}, grid:{color:'#e4ede9'},
           title:{display:true,text:'D/E Ratio %',color:'#e07878'} },
-      y2:{ position:'right', ticks:{color:'#7eb5d4',callback:v=>v+'%'}, grid:{display:false},
+      y2:{ position:'right', grace:'25%', ticks:{color:'#7eb5d4',callback:v=>v+'%'}, grid:{display:false},
            title:{display:true,text:'Current Ratio %',color:'#7eb5d4'} }
     }
   });
 
   // 4. Revenue + profit trend
+  // Profits are ~1/10 of sales, so they get their own right axis; the profit lines sit in the
+  // upper part of the chart and sales labels sit inside the bar bottoms so labels don't collide.
+  const oiData = rows.map(r=>+S(r.OperatingProfit).toFixed(1));
+  const niData = rows.map(r=>+S(r.NetIncome).toFixed(1));
+  const profitMax = Math.max(1, ...oiData, ...niData);
+  const profitMin = Math.min(0, ...oiData, ...niData);
+  const profitSpan = profitMax - profitMin;
   mkChart('cc-revenue','bar',{
     labels:months,
     datasets:[
-      { label:'Sales', type:'bar', yAxisID:'y', data:rows.map(r=>M(r.Sales).toFixed(1)),
-        backgroundColor:'rgba(126,181,212,.35)' },
-      { label:'Operating Income', type:'line', yAxisID:'y',
-        data:rows.map(r=>M(r.OperatingProfit).toFixed(1)),
-        borderColor:'#5db88a', fill:false, tension:.35, pointRadius:4 },
-      { label:'Net Income', type:'line', yAxisID:'y',
-        data:rows.map(r=>M(r.NetIncome).toFixed(1)),
-        borderColor:'#e07878', fill:false, tension:.35, borderDash:[4,2], pointRadius:4 }
+      { label:'Sales', type:'bar', yAxisID:'y', order:3,
+        data:rows.map(r=>+M(r.Sales).toFixed(1)),
+        backgroundColor:'rgba(126,181,212,.35)',
+        datalabels:{ display:true, color:'#5a7268', font:{size:9,weight:'600'},
+          formatter:v=>fmtUsdM(v), anchor:'start', align:'end', offset:4 } },
+      { label:'Operating Income', type:'line', yAxisID:'y2', order:1, data:oiData,
+        borderColor:'#2d8f65', backgroundColor:'#2d8f65', fill:false, tension:.35, pointRadius:4,
+        datalabels:smartLineLabel('#2d8f65', v=>fmtUsdM(v)) },
+      { label:'Net Income', type:'line', yAxisID:'y2', order:2, data:niData,
+        borderColor:'#e07878', backgroundColor:'#e07878', fill:false, tension:.35, borderDash:[4,2], pointRadius:4,
+        datalabels:smartLineLabel('#c05a5a', v=>fmtUsdM(v)) }
     ]
   },{
     responsive:true, maintainAspectRatio:false,
     plugins:{
       legend:{ labels:{ color:'#8fada4', font:{size:11} } },
-      datalabels:{ display:ctx=>ctx.datasetIndex===0, color:'#5a7268', font:{size:9},
-        formatter:v=>'$'+v+'M', align:'top', anchor:'end' },
-      tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: $${Number(c.raw).toFixed(1)}M` } }
+      tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: ${fmtUsdM(c.raw)}` } }
     },
     scales:{
       x:{ ticks:{color:'#8fada4'}, grid:{color:'#e4ede9'} },
-      y:{ ticks:{color:'#8fada4', callback:v=>'$'+v+'M'}, grid:{color:'#e4ede9'} }
-    }
-  });
-
-  // 5. Waterfall
-  const wItems=buildWaterfall(L);
-  mkChart('cc-waterfall','bar',{
-    labels:wItems.map(w=>w.label),
-    datasets:[
-      { label:'_base', data:wItems.map(w=>w.base), backgroundColor:'transparent', stack:'w' },
-      { label:'Amount (USD M)', data:wItems.map(w=>w.val), backgroundColor:wItems.map(w=>w.color), stack:'w' }
-    ]
-  },{
-    responsive:true, maintainAspectRatio:false,
-    plugins:{
-      legend:{ display:false },
-      datalabels:{ display:ctx=>ctx.datasetIndex===1, color:'#1a2e24', font:{size:10,weight:'600'},
-        formatter:(v,ctx)=>'$'+wItems[ctx.dataIndex].val.toFixed(1)+'M', align:'top', anchor:'end' },
-      tooltip:{ filter:i=>i.datasetIndex===1, callbacks:{ label:c=>`$${c.raw.toFixed(1)}M` } }
-    },
-    scales:{
-      x:{ ticks:{color:'#8fada4', maxRotation:35, font:{size:10}}, grid:{color:'#e4ede9'}, stacked:true },
-      y:{ ticks:{color:'#8fada4', callback:v=>'$'+v.toFixed(0)+'M'}, grid:{color:'#e4ede9'}, stacked:true }
+      y:{ position:'left', ticks:{color:'#8fada4', callback:v=>'$'+v+'M'}, grid:{color:'#e4ede9'},
+          title:{display:true, text:'Sales', color:'#8fada4'} },
+      y2:{ position:'right', grid:{display:false},
+           min: Math.floor(profitMin - profitSpan*1.2), max: Math.ceil(profitMax + profitSpan*0.25),
+           ticks:{color:'#2d8f65', callback:v=>fmtUsdM(v)},
+           title:{display:true, text:'Operating / Net Income', color:'#2d8f65'} }
     }
   });
 
@@ -1066,85 +1173,6 @@ function renderFSTab() {
     wcEl.textContent = 'Latest: $' + wcVal.toFixed(1) + 'M';
     wcEl.style.color = wcVal >= 0 ? '#2d8f65' : '#e07878';
   }
-
-  // 9. P&L Waterfall (moved from Earnings tab)
-  const wItemsFS=buildWaterfall(L);
-  mkChart('pl-waterfall','bar',{
-    labels:wItemsFS.map(w=>w.label),
-    datasets:[
-      { label:'_base', data:wItemsFS.map(w=>w.base), backgroundColor:'transparent', stack:'w' },
-      { label:'Amount', data:wItemsFS.map(w=>w.val), backgroundColor:wItemsFS.map(w=>w.color), stack:'w' }
-    ]
-  },{
-    responsive:true, maintainAspectRatio:false,
-    plugins:{
-      legend:{display:false},
-      datalabels:{ display:ctx=>ctx.datasetIndex===1, color:'#1a2e24', font:{size:10,weight:'600'},
-        formatter:(v,ctx)=>'$'+wItemsFS[ctx.dataIndex].val.toFixed(1)+'M', align:'top', anchor:'end' },
-      tooltip:{ filter:i=>i.datasetIndex===1, callbacks:{ label:c=>`$${c.raw.toFixed(1)}M` } }
-    },
-    scales:{
-      x:{ ticks:{color:'#8fada4', maxRotation:30, font:{size:10}}, grid:{color:'#e4ede9'}, stacked:true },
-      y:{ ticks:{color:'#8fada4', callback:v=>'$'+v.toFixed(0)+'M'}, grid:{color:'#e4ede9'}, stacked:true }
-    }
-  });
-
-  // 10. Monthly P&L Trend (moved from Earnings tab)
-  mkChart('pl-trend','bar',{
-    labels:months,
-    datasets:[
-      { label:'Sales', type:'bar', yAxisID:'y', data:rows.map(r=>M(r.Sales).toFixed(1)), backgroundColor:'rgba(126,181,212,.35)' },
-      { label:'Gross Profit', type:'line', yAxisID:'y', data:rows.map(r=>M(r.GrossProfit).toFixed(1)),
-        borderColor:'#3aaa7a', fill:false, tension:.35, pointRadius:4 },
-      { label:'Operating Income', type:'line', yAxisID:'y', data:rows.map(r=>M(r.OperatingProfit).toFixed(1)),
-        borderColor:'#5db88a', fill:false, tension:.35, pointRadius:3, borderDash:[3,2] },
-      { label:'Net Income', type:'line', yAxisID:'y', data:rows.map(r=>M(r.NetIncome).toFixed(1)),
-        borderColor:'#e07878', fill:false, tension:.35, pointRadius:3, borderDash:[5,3] }
-    ]
-  },{
-    responsive:true, maintainAspectRatio:false,
-    plugins:{
-      legend:{ labels:{ color:'#8fada4', font:{size:11} } },
-      datalabels:{ display:ctx=>ctx.datasetIndex===0, color:'#5a7268', font:{size:9},
-        formatter:v=>'$'+v+'M', align:'top', anchor:'end' },
-      tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: $${Number(c.raw).toFixed(1)}M` } }
-    },
-    scales:{
-      x:{ ticks:{color:'#8fada4'}, grid:{color:'#e4ede9'} },
-      y:{ ticks:{color:'#8fada4', callback:v=>'$'+v+'M'}, grid:{color:'#e4ede9'} }
-    }
-  });
-}
-
-/* Waterfall builder — data in '000 USD, display in USD M */
-function buildWaterfall(L) {
-  const M = v => Math.abs(v||0)/1000;
-  const rev=M(L.Sales), cogs=M(L.COGS||0), gp=rev-cogs;
-  const sga=M(L.SGAExpenses||0), op=gp-sga;
-  const noi=M(L.NonOpIncome||0), noe=M(L.NonOpExpense||0), net=M(L.NetIncome||0);
-
-  const items=[
-    {label:'Revenue',      val:rev,   color:'#7eb5d4'},
-    {label:'− COGS',       val:cogs,  color:'#e07878'},
-    {label:'Gross Profit', val:gp,    color:'#5db88a'},
-    {label:'− SG&A',       val:sga,   color:'#e07878'},
-    {label:'Operating I.', val:op,    color:'#5db88a'},
-    {label:'+ Non-Op Inc.',val:noi,   color:'#7eb5d4'},
-    {label:'− Non-Op Exp.',val:noe,   color:'#e07878'},
-    {label:'Net Income',   val:net,   color:'#f0c060'}
-  ];
-
-  const negItems=['− COGS','− SG&A','− Non-Op Exp.'];
-  let cursor=0;
-  return items.map(it=>{
-    const isNeg=negItems.includes(it.label);
-    const isTotal=['Gross Profit','Operating I.','Net Income'].includes(it.label);
-    const base = isNeg ? cursor-it.val : (isTotal ? 0 : cursor);
-    const out={ label:it.label, base:Math.max(0,base), val:it.val, color:it.color };
-    if (!isTotal) cursor += isNeg ? -it.val : it.val;
-    else cursor = it.val;
-    return out;
-  });
 }
 
 /* ══════════════════════════════════════════
@@ -1154,6 +1182,7 @@ function renderEarningsTab() {
   if (!fsRows.length) {
     // Still render forecast table even without FS data
     renderForecastTable(getSelectedMonth());
+    renderForecastHistory();
     return;
   }
   const L=getActiveRow(); if(!L) return;
@@ -1164,10 +1193,10 @@ function renderEarningsTab() {
 
   // KPIs
   const pct = (a,b) => b ? (a/b*100).toFixed(1)+'%' : '—%';
-  const fmtM = v => (Math.abs(v/1000)).toFixed(1);
+  const fmtM = v => (v/1000).toFixed(1);
   const signColor = v => v>=0?'good':'warn';
 
-  setKPI('pkc-sales',  fmtM(L.Sales),'M',`USD M (’000 USD: ${fmt000(L.Sales)})`, 'hi');
+  setKPI('pkc-sales',  fmtM(L.Sales),'M',`USD Million (’000 USD: ${fmt000(L.Sales)})`, 'hi');
   setKPI('pkc-gp',     fmtM(L.GrossProfit),'M','GP Margin: '+pct(L.GrossProfit,L.Sales), signColor(L.GrossProfit));
   setKPI('pkc-oi',     fmtM(L.OperatingProfit),'M','OI Margin: '+pct(L.OperatingProfit,L.Sales), signColor(L.OperatingProfit));
   setKPI('pkc-ebitda', fmtM(L.EBITDA||0),'M','EBITDA Margin: '+pct(L.EBITDA||0,L.Sales), signColor(L.EBITDA||0));
@@ -1198,7 +1227,7 @@ function renderEarningsTab() {
     const rowClass = item.bold ? 'row-bold row-highlight' : (isIndent ? 'row-sub' : '');
     const cells = rows.map(r=>{
       const v = r[item.key] || 0;
-      const color = item.bold && v<0 ? 'color:#e07878' : (item.bold && v>0 ? 'color:#1a2e24' : '');
+      const color = v<0 ? 'color:var(--negative)' : (item.bold && v>0 ? 'color:#1a2e24' : '');
       const isSel = sel && r.Month===sel;
       const bg = isSel ? 'background:#e8f5ef;' : '';
       return `<td style="text-align:right;${color};${bg}">${fmt000(v)}</td>`;
@@ -1211,6 +1240,108 @@ function renderEarningsTab() {
 
   // Forecast Table
   renderForecastTable(sel);
+  renderPlActualTrend(rows);
+  renderForecastHistory();
+}
+
+/* ─── Sales & profit trend charts (P&L tab) ───
+   Sales is ~10x the profit lines, so the y-axis is split into two bands with a wavy cut:
+   profits fill the lower band and sales the upper band, each on its own scale. */
+const TREND_SERIES = [
+  { label:'Sales',            color:'#8e6cc0', dash:[]    },
+  { label:'Gross Profit',     color:'#3f86ad', dash:[]    },
+  { label:'Operating Income', color:'#2d8f65', dash:[]    },
+  { label:'Net Income',       color:'#c05a5a', dash:[5,3] },
+];
+const BAND_LOW_TOP = 55;      // virtual axis 0–55: profit band
+const BAND_HIGH_BOTTOM = 63;  // virtual axis 63–100: sales band (the gap holds the cut)
+const VIRTUAL_TOP = 100;
+
+// Piecewise mapping of real values onto a 0–100 virtual axis; null when the ranges overlap
+function twoBandAxis(lowValues, highValues) {
+  const lowMin = Math.min(...lowValues), lowMax = Math.max(...lowValues);
+  const highMin = Math.min(...highValues), highMax = Math.max(...highValues);
+  const spanOf = (lo, hi) => (hi - lo) || Math.max(Math.abs(hi) * 0.1, 1);
+  // Data sits inside each band with room above/below for a value label:
+  // profits use virtual 12–50 of the 0–55 band, sales 67–86 of the 63–100 band.
+  const lowSpan = spanOf(lowMin, lowMax), highSpan = spanOf(highMin, highMax);
+  const a = lowMin - lowSpan * (12 / 38);                 // real value at virtual 0
+  const b = lowMax + lowSpan * ((BAND_LOW_TOP - 50) / 38); // real value at virtual 55
+  const c = highMin - highSpan * ((67 - BAND_HIGH_BOTTOM) / 19);
+  const d = highMax + highSpan * ((VIRTUAL_TOP - 86) / 19);
+  if (c <= b) return null;
+  const lerp = (v, r0, r1, v0, v1) => v0 + (v - r0) / (r1 - r0) * (v1 - v0);
+  const toVirt = v => v <= b ? lerp(v, a, b, 0, BAND_LOW_TOP)
+                    : v >= c ? lerp(v, c, d, BAND_HIGH_BOTTOM, VIRTUAL_TOP)
+                    : lerp(v, b, c, BAND_LOW_TOP, BAND_HIGH_BOTTOM);
+  const toReal = x => x <= BAND_LOW_TOP ? lerp(x, 0, BAND_LOW_TOP, a, b)
+                    : x >= BAND_HIGH_BOTTOM ? lerp(x, BAND_HIGH_BOTTOM, VIRTUAL_TOP, c, d)
+                    : lerp(x, BAND_LOW_TOP, BAND_HIGH_BOTTOM, b, c);
+  const bandTicks = (lo, hi, count) => {
+    const step = niceStep((hi - lo) / count), out = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6));
+    return out;
+  };
+  const tickValues = [...bandTicks(a, b, 6), ...bandTicks(c, d, 4)].map(toVirt);
+  return { toVirt, toReal, tickValues, cutAt: (BAND_LOW_TOP + BAND_HIGH_BOTTOM) / 2 };
+}
+
+// series: [{label, color, dash, data (USD Million)}] with Sales first; profits labelled with % of sales
+function renderSalesProfitTrend(canvasId, labels, series, opts = {}) {
+  const sales = series[0].data;
+  const band = twoBandAxis(series.slice(1).flatMap(s => s.data), sales);
+  const plot = v => band ? +band.toVirt(v).toFixed(4) : v;
+  const pctOfSales = (v, i) => sales[i] ? (v / sales[i] * 100).toFixed(1) + '%' : '—';
+  const labelText = (si, i) => {
+    const real = series[si].data[i];
+    return si === 0 ? fmtUsdM(real) : `${fmtUsdM(real)} (${pctOfSales(real, i)})`;
+  };
+  const datasets = series.map((s, si) => ({
+    label: s.label, type: 'line', data: s.data.map(plot), realData: s.data,
+    borderColor: s.color, backgroundColor: s.color, borderDash: s.dash, borderWidth: si === 0 ? 3 : 2,
+    fill: false, tension: .35, pointRadius: 4,
+    datalabels: smartLineLabel(s.color, (v, ctx) => labelText(si, ctx.dataIndex))
+  }));
+  const yScale = band
+    ? { min: 0, max: VIRTUAL_TOP, grace: 0, grid: { color: '#e4ede9' },
+        afterBuildTicks: axis => { axis.ticks = band.tickValues.map(value => ({ value })); },
+        ticks: { color: '#8fada4', callback: v => fmtUsdM(Math.round(band.toReal(v) * 10) / 10 || 0) } }
+    : { grid: { color: '#e4ede9' }, ticks: { color: '#8fada4', callback: v => fmtUsdM(v) } };
+  mkChart(canvasId, 'line', { labels, datasets }, {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: '#8fada4', font: { size: 11 } } },
+      tooltip: { callbacks: {
+        title: opts.tooltipTitle || (c => c[0].label),
+        label: c => `${c.dataset.label}: ${labelText(c.datasetIndex, c.dataIndex)}` } },
+      axisBreak: band ? { bandAt: band.cutAt } : {}
+    },
+    scales: {
+      // offset: half a category of space at both ends so edge labels are not cut off
+      x: { offset: true, ticks: { color: '#8fada4' }, grid: { color: '#e4ede9' },
+           title: { display: !!opts.xTitle, text: opts.xTitle || '', color: '#8fada4' } },
+      y: yScale
+    }
+  });
+}
+
+/* Actual months under the P&L table */
+function renderPlActualTrend(rows) {
+  const toM = v => +((v || 0) / 1000).toFixed(1);  // '000 USD → USD Million
+  const keys = ['Sales', 'GrossProfit', 'OperatingProfit', 'NetIncome'];
+  renderSalesProfitTrend('pl-actual-trend', rows.map(r => formatMonthLabel(r.Month)),
+    TREND_SERIES.map((s, i) => ({ ...s, data: rows.map(r => toM(r[keys[i]])) })));
+}
+
+/* Full-year outlook of every forecast version (1+11 → latest) */
+function renderForecastHistory() {
+  if (!forecastHistory.length) { killChart('fcst-history'); return; }
+  const toM = v => +((Number(v) || 0) / 1000).toFixed(1);
+  const keys = ['Sales', 'GrossProfit', 'OperatingIncome', 'NetIncome'];
+  renderSalesProfitTrend('fcst-history', forecastHistory.map(h => h.Version),
+    TREND_SERIES.map((s, i) => ({ ...s, data: forecastHistory.map(h => toM(h[keys[i]])) })),
+    { xTitle: 'Forecast version (actual months + forecast months)',
+      tooltipTitle: c => 'Rolling FCST ' + c[0].label + ' — full year' });
 }
 
 /* ─── Forecast from raw Forecast sheet (dashboard_data.xlsx) ─── */
@@ -1245,9 +1376,11 @@ function renderForecastFromRaw(rows, selectedMonth) {
   // Key rows to bold+highlight
   const KEY_ROWS = [
     'Sales Rev', 'COGS', 'Gross Profit', 'SG&A',
-    'O.I.(Exc.HQ)', 'EBITDA(Inc.HQ)', 'Net Income(Exc.HQ)',
+    'O.I(Exc.HQ)', 'EBITDA(Inc.HQ)', 'Net Income(Exc.HQ)',
     'Ordinary Income(Exc.HQ)'
   ];
+  // HQ allocation rows are not shown on the dashboard
+  const HIDDEN_ROWS = ['HQ Allocation', 'I.O(Inc.HQ)', 'Non.Operating HQ', 'Ordinary Income(Inc.HQ)'];
 
   // Determine last actual month index (0=Jan … 11=Dec) from FS data
   let lastActualIdx = -1;
@@ -1286,6 +1419,7 @@ function renderForecastFromRaw(rows, selectedMonth) {
     const label = String(row[labelCol] || '').trim();
     if (!label) return '';                     // blank label
     if (label.startsWith('%')) return '';      // skip % rows
+    if (HIDDEN_ROWS.includes(label)) return '';
 
     const isKey  = KEY_ROWS.some(k => label === k || label.includes(k));
     const rowCls = isKey ? 'row-bold row-highlight' : '';
@@ -1298,14 +1432,14 @@ function renderForecastFromRaw(rows, selectedMonth) {
       const bgStyle  = isSel ? 'background:#e8f5ef;' : '';
       // Future forecast months: muted + italic
       const fcstStyle = !isActual ? 'color:var(--muted);font-style:italic;' : '';
-      const valColor  = isKey && num < 0 ? 'color:#e07878;'
+      const valColor  = num < 0 ? 'color:var(--negative);'
                       : isKey && num > 0 ? 'color:var(--ink);' : '';
       return `<td style="text-align:right;${bgStyle}${fcstStyle}${valColor}">${fmt000(num)}</td>`;
     }).join('');
 
     const totalRaw = row[totalCol];
     const totalNum = (totalRaw !== '' && totalRaw !== null && totalRaw !== undefined) ? (Number(totalRaw) || 0) : 0;
-    const totClr   = isKey && totalNum < 0 ? 'color:#e07878;' : isKey ? 'color:var(--ink);' : '';
+    const totClr   = totalNum < 0 ? 'color:var(--negative);' : isKey ? 'color:var(--ink);' : '';
     const totalCell = `<td style="text-align:right;font-weight:700;${totClr}">${fmt000(totalNum)}</td>`;
 
     return `<tr class="${rowCls}"><td>${label}</td>${cells}${totalCell}</tr>`;
@@ -1423,9 +1557,8 @@ function renderForecastTable(selectedMonth) {
 function renderVendorTab() {
   if (!vendorRows.length) return;
   const today=new Date();
-  const vfV=document.getElementById('vf-vendor').value;
-  const vfC=document.getElementById('vf-category').value;
-  const vfS=document.getElementById('vf-status').value;
+  // No filters on this tab: all tracked vendors, open and paid
+  const vfV='', vfC='', vfS='';
 
   const docMap={};
   vendorRows.filter(r=>String(r.Type||'').trim()==='RE').forEach(r=>{
@@ -1455,7 +1588,10 @@ function renderVendorTab() {
   const avgDays=payDays.length?(payDays.reduce((a,b)=>a+b,0)/payDays.length):null;
   const openAmt=openRows.reduce((s,r)=>s+Math.abs(parseFloat(String(r.AmountUSD||0).replace(/,/g,''))||0),0);
 
-  setKPI('vkc-vendors',[...new Set(filtered.map(r=>r.Vendor))].length.toLocaleString('en-US'),'','Active Vendors','');
+  // All vendor accounts in the file (not just the tracked ones); employee/one-time accounts are already dropped by the parser
+  const allVendors=new Set(vendorRows.map(r=>r.Vendor));
+  const invoicedVendors=new Set(vendorRows.filter(r=>String(r.Type||'').trim()==='RE').map(r=>r.Vendor));
+  setKPI('vkc-vendors',invoicedVendors.size.toLocaleString('en-US'),'',`Vendors with invoices (of ${allVendors.size.toLocaleString('en-US')} vendor accounts)`,'');
   setKPI('vkc-total',filtered.length.toLocaleString('en-US'),'','Total RE Invoices','');
   setKPI('vkc-open',openRows.length.toLocaleString('en-US'),'','Open Invoices','warn');
   setKPI('vkc-amt',(openAmt/1e6).toFixed(1),'M','Outstanding USD','warn');
@@ -1465,33 +1601,125 @@ function renderVendorTab() {
   const asofEl=document.getElementById('vendor-data-asof');
   if(asofEl) asofEl.textContent=maxPstng?'Data as of '+maxPstng.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}):'';
 
-  renderVOpenSummary(openRows);
-  renderVAvgDays(filtered);
-  renderVAging(openRows,today);
+  renderVOpenSummary(openInvoicesAllVendors());
+  renderVPayDist(clearedInvoicesAllVendors());
+  renderVSpendTop();
   renderVTable(filtered,today);
 }
 
-function renderVOpenSummary(openRows) {
-  const tbody=document.getElementById('v-open-summary-body');
-  const summary={};
-  for(const r of openRows){const vid=String(r.Vendor).trim();const cfg=VENDOR_CFG[vid];if(!cfg)continue;if(!summary[vid])summary[vid]={name:cfg.name,cat:cfg.cat,count:0,amt:0};summary[vid].count++;summary[vid].amt+=Math.abs(parseFloat(String(r.AmountUSD||0).replace(/,/g,''))||0);}
-  const rows2=Object.values(summary).sort((a,b)=>b.amt-a.amt);
-  if(!rows2.length){tbody.innerHTML=`<tr><td colspan="3" style="text-align:center;padding:24px;color:var(--muted)">No open invoices</td></tr>`;return;}
-  tbody.innerHTML=rows2.map(r=>`<tr><td>${r.name}</td><td style="color:var(--body)">${r.cat}</td><td style="text-align:right;font-weight:600;color:var(--ink)">$${r.amt.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>`).join('');
+// Open (uncleared) RE invoices of every vendor, one row per document
+function openInvoicesAllVendors() {
+  const docs = {};
+  vendorRows.filter(r => String(r.Type || '').trim() === 'RE').forEach(r => {
+    const key = String(r.DocumentNo || '').trim();
+    if (!key) return;
+    const ex = docs[key];
+    if (!ex || (isCleared(r) && !isCleared(ex))) docs[key] = r;
+  });
+  return Object.values(docs).filter(r => !isCleared(r));
 }
 
-function renderVAvgDays(data) {
-  const vids=Object.keys(VENDOR_CFG);
-  const labels=vids.map(v=>VENDOR_CFG[v].name);
-  const avgs=vids.map(vid=>{const rows=data.filter(r=>String(r.Vendor).trim()===vid&&isCleared(r));const days=rows.map(r=>dateDiff(r.DocDate,r.Clearing)).filter(d=>d!==null&&d>=0);return days.length?days.reduce((a,b)=>a+b,0)/days.length:null;});
-  const colors=vids.map(v=>CAT_COLOR[VENDOR_CFG[v].cat]||'#555');
-  mkChart('vc-avgdays','bar',{labels,datasets:[{label:'Avg Payment Days',data:avgs,backgroundColor:colors,borderWidth:0}]},{
-    indexAxis:'y',responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},
-      datalabels:{display:true,color:'#1a2e24',font:{size:10,weight:'600'},formatter:v=>v?v.toFixed(0)+'d':null,align:'right',anchor:'end'},
-      tooltip:{callbacks:{label:c=>c.raw!==null?c.raw.toFixed(0)+' days':'No cleared data'}}},
-    scales:{x:{ticks:{color:'#8fada4'},grid:{color:'#e4ede9'},title:{display:true,text:'Days',color:'#8fada4'}},y:{ticks:{color:'#8fada4',font:{size:11}},grid:{color:'#e4ede9'}}}
+const TOP_VENDOR_COUNT = 10;
+function vendorDisplayName(id) {
+  return (VENDOR_CFG[id] && VENDOR_CFG[id].name) || vendorNames[id] || id;
+}
+
+// Top 10 vendors by outstanding amount, with invoice count and share of all open invoices
+function renderVOpenSummary(openRows) {
+  const tbody = document.getElementById('v-open-summary-body');
+  const amt = r => Math.abs(parseFloat(String(r.AmountUSD || 0).replace(/,/g, '')) || 0);
+  const byVendor = {};
+  for (const r of openRows) {
+    const id = String(r.Vendor).trim();
+    if (!byVendor[id]) byVendor[id] = { id, count: 0, amt: 0 };
+    byVendor[id].count++;
+    byVendor[id].amt += amt(r);
+  }
+  const total = Object.values(byVendor).reduce((s, v) => s + v.amt, 0);
+  const top = Object.values(byVendor).sort((a, b) => b.amt - a.amt).slice(0, TOP_VENDOR_COUNT);
+  if (!top.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No open invoices</td></tr>';
+    return;
+  }
+  const usd = v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const shareCell = v => {
+    const pct = total ? v / total * 100 : 0;
+    return `<td style="text-align:right"><div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">`
+      + `<div style="width:70px;height:6px;background:#eef1f0;border-radius:3px;overflow:hidden">`
+      + `<div style="width:${Math.min(100, pct)}%;height:100%;background:#e0a040"></div></div>`
+      + `<span style="min-width:46px">${pct.toFixed(1)}%</span></div></td>`;
+  };
+  const topAmt = top.reduce((s, v) => s + v.amt, 0);
+  tbody.innerHTML = top.map((v, i) => {
+    const cat = vendorCategory(v.id);
+    return `<tr><td style="text-align:center;color:var(--muted)">${i + 1}</td>`
+      + `<td style="font-weight:600;color:var(--ink)">${escapeHtml(vendorDisplayName(v.id))}</td>`
+      + `<td style="font-family:monospace;font-size:12px;color:var(--body)">${escapeHtml(v.id)}</td>`
+      + `<td style="color:var(--body)">${escapeHtml(cat)}</td>`
+      + `<td style="text-align:right">${v.count.toLocaleString('en-US')}</td>`
+      + `<td style="text-align:right;font-weight:600;color:var(--ink)">${usd(v.amt)}</td>${shareCell(v.amt)}</tr>`;
+  }).join('')
+    + `<tr class="row-bold row-highlight"><td></td><td>Top ${top.length} total</td><td></td><td></td>`
+    + `<td style="text-align:right">${top.reduce((s, v) => s + v.count, 0).toLocaleString('en-US')}</td>`
+    + `<td style="text-align:right">${usd(topAmt)}</td>${shareCell(topAmt)}</tr>`;
+}
+
+// Payment-day bands (inclusive upper bound); invoices paid within 10 days (or before the document date) count as 0~10
+const PAY_DAY_BANDS = [
+  { label: '0 ~ 10 days',    max: 10 },
+  { label: '11 ~ 30 days',   max: 30 },
+  { label: '31 ~ 60 days',   max: 60 },
+  { label: '61 ~ 90 days',   max: 90 },
+  { label: '91 ~ 120 days',  max: 120 },
+  { label: '121 ~ 150 days', max: 150 },
+  { label: '151+ days',      max: Infinity },
+];
+const PAY_DAY_COLORS = ['#dbeafe', '#bfdbfe', '#93c5fd', '#60a5fa', '#3b82f6', '#1d4ed8', '#1e3a8a'];
+const PAY_DAY_PEAK_COLOR = '#155e7f';
+
+// Cleared RE invoices of every vendor, one row per document
+function clearedInvoicesAllVendors() {
+  const docs = {};
+  vendorRows.filter(r => String(r.Type || '').trim() === 'RE').forEach(r => {
+    const key = String(r.DocumentNo || '').trim();
+    if (!key) return;
+    const ex = docs[key];
+    if (!ex || (isCleared(r) && !isCleared(ex))) docs[key] = r;
   });
+  return Object.values(docs).filter(r => parseD(r.Clearing) && parseD(r.DocDate));
+}
+
+function renderVPayDist(cleared) {
+  const box = document.getElementById('v-paydist');
+  if (!box) return;
+  const amt = r => Math.abs(parseFloat(String(r.AmountUSD || 0).replace(/,/g, '')) || 0);
+  const sums = PAY_DAY_BANDS.map(() => 0);
+  let total = 0;
+  for (const r of cleared) {
+    const days = dateDiff(r.DocDate, r.Clearing);
+    if (days === null) continue;
+    const i = PAY_DAY_BANDS.findIndex(b => days <= b.max);
+    sums[i] += amt(r);
+    total += amt(r);
+  }
+  if (!total) {
+    box.innerHTML = '<div style="color:var(--muted);padding:24px;text-align:center">No cleared invoices</div>';
+    return;
+  }
+  const pcts = sums.map(v => v / total * 100);
+  const peak = pcts.indexOf(Math.max(...pcts));
+  // bars are scaled to the largest band so the peak fills ~90% of the row
+  const scale = 90 / Math.max(...pcts);
+  box.innerHTML = PAY_DAY_BANDS.map((b, i) => {
+    if (!sums[i] && b.max === Infinity) return '';   // hide an empty 151+ band
+    const isPeak = i === peak;
+    const fill = isPeak ? PAY_DAY_PEAK_COLOR : PAY_DAY_COLORS[i];
+    const labelColor = isPeak || i >= 5 ? '#fff' : 'var(--ink)';
+    return `<div class="pd-row"><div class="pd-fill" style="width:${(pcts[i] * scale).toFixed(1)}%;background:${fill}"></div>`
+      + `<span class="pd-label" style="color:${labelColor}">${b.label}</span>`
+      + `<span class="pd-pct">${pcts[i].toFixed(2)}%</span></div>`;
+  }).join('')
+    + `<div class="pd-note">⚡ ${pcts[peak].toFixed(2)}% of total amount was cleared ${PAY_DAY_BANDS[peak].label} after the invoice date</div>`;
 }
 
 function renderVDist(data) {
@@ -1504,52 +1732,33 @@ function renderVDist(data) {
   mkChart('vc-dist','bar',{labels,datasets},barOpts({ylabel:'Count',stacked:true,showLabels:false}));
 }
 
-function renderVAging(openRows,today) {
-  // Use all known vendors (from VENDOR_CFG) that have any open rows
-  const vids=Object.keys(VENDOR_CFG).filter(vid=>openRows.some(r=>String(r.Vendor).trim()===vid));
-  if(!vids.length){killChart('vc-aging');return;}
-  const labels=vids.map(v=>VENDOR_CFG[v].name);
-  const buckets=['0-30','31-60','61-90','91-120','120+'];
-  const bcColors=['#5db88a','#7eb5d4','#f0c060','#e07878','#c8877a'];
-  const datasets=buckets.map((b,bi)=>({
-    label:b, stack:'a', backgroundColor:bcColors[bi],
-    data:vids.map(vid=>{
-      const vrows=openRows.filter(r=>String(r.Vendor).trim()===vid);
-      return vrows.filter(r=>{
-        const doc=parseD(r.DocDate);if(!doc)return false;
-        const age=Math.floor((today-doc)/864e5);
-        return [age<=30, age>30&&age<=60, age>60&&age<=90, age>90&&age<=120, age>120][bi];
-      }).reduce((s,r)=>s+Math.abs(parseFloat(String(r.AmountUSD||0).replace(/,/g,''))||0),0)/1e6;
-    })
-  }));
-  mkChart('vc-aging','bar',{labels,datasets},{
-    indexAxis:'y',
-    responsive:true, maintainAspectRatio:false,
-    plugins:{
-      legend:{ labels:{ color:'#8fada4', font:{size:11} } },
-      datalabels:{
-        display: ctx => {
-          if(ctx.datasetIndex !== buckets.length-1) return false;
-          const allDs = ctx.chart.data.datasets.slice(0, buckets.length);
-          const total = allDs.reduce((s,ds)=>s+(Number(ds.data[ctx.dataIndex])||0),0);
-          return total > 0.001;
-        },
-        color:'#1a2e24', font:{size:9,weight:'600'},
-        formatter:(v,ctx)=>{
-          const allDs=ctx.chart.data.datasets.slice(0,buckets.length);
-          const total=allDs.reduce((s,ds)=>s+(Number(ds.data[ctx.dataIndex])||0),0);
-          return '$'+total.toFixed(1)+'M';
-        },
-        align:'right', anchor:'end', clamp:true
-      },
-      tooltip:{ callbacks:{ label:c=>`${c.dataset.label} days: $${Number(c.raw).toFixed(2)}M` }}
-    },
-    scales:{
-      x:{ ticks:{color:'#8fada4', callback:v=>'$'+Number(v).toFixed(1)+'M'}, grid:{color:'#e4ede9'}, stacked:true,
-          title:{display:true, text:'Outstanding Amount (USD M)', color:'#8fada4'} },
-      y:{ ticks:{color:'#8fada4', font:{size:11}}, grid:{color:'#e4ede9'}, stacked:true }
-    }
-  });
+const SPEND_TOP_N = 10;
+const SPEND_HIGHLIGHT = 3;   // top 3 drawn in orange like the reference layout
+// Category: GL cost account → user rule (OTA) → tracked-vendor / PFE-list category → material type (GR/IR) → '—'
+function vendorCategory(id) {
+  const gl = vendorCats[id] || {};
+  const pfe = pfeVendors.find(p => p.Supplier === id);
+  return gl.cost || gl.rule || (VENDOR_CFG[id] && VENDOR_CFG[id].cat) || (pfe && pfe.Category) || gl.material || '—';
+}
+
+function renderVSpendTop() {
+  const tbody = document.getElementById('v-spend-body');
+  if (!tbody || !vendorSpend.length) return;
+  const top = vendorSpend.slice(0, SPEND_TOP_N);
+  const max = top[0].Amount || 1;
+  tbody.innerHTML = top.map((v, i) => {
+    const hot = i < SPEND_HIGHLIGHT;
+    const color = hot ? '#e8742f' : (i < SPEND_TOP_N ? '#1f5c99' : '#5a7268');
+    const barColor = hot ? '#e8742f' : '#1a8fd8';
+    const width = Math.max(1.5, v.Amount / max * 100).toFixed(1);
+    return `<tr>`
+      + `<td style="text-align:center"><span class="spend-rank" style="background:${color}">${i + 1}</span></td>`
+      + `<td style="font-weight:${hot ? 700 : 500};color:var(--ink)">${escapeHtml(v.Name)}</td>`
+      + `<td><span class="spend-pill">${escapeHtml(vendorCategory(v.Supplier))}</span></td>`
+      + `<td style="color:var(--body);font-size:12px">${escapeHtml(v.Terms || '—')}</td>`
+      + `<td><div class="spend-bar"><div style="width:${width}%;height:100%;background:${barColor}"></div></div>`
+      + `<div class="spend-amt">$${Math.round(v.Amount).toLocaleString('en-US')}</div></td></tr>`;
+  }).join('');
 }
 
 function renderVMonthly() {
@@ -1565,7 +1774,7 @@ function renderVOutstanding(openRows) {
   const vids=Object.keys(VENDOR_CFG);
   const labels=vids.map(v=>VENDOR_CFG[v].name);
   const amts=vids.map(vid=>openRows.filter(r=>String(r.Vendor).trim()===vid).reduce((s,r)=>s+Math.abs(parseFloat(String(r.AmountUSD||0).replace(/,/g,''))||0),0)/1e6);
-  mkChart('vc-outstanding','bar',{labels,datasets:[{label:'Outstanding (USD M)',data:amts,backgroundColor:vids.map(v=>CAT_COLOR[VENDOR_CFG[v].cat]||'#555'),borderWidth:0}]},{
+  mkChart('vc-outstanding','bar',{labels,datasets:[{label:'Outstanding (USD Million)',data:amts,backgroundColor:vids.map(v=>CAT_COLOR[VENDOR_CFG[v].cat]||'#555'),borderWidth:0}]},{
     indexAxis:'y',responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:false},
       datalabels:{display:true,color:'#1a2e24',font:{size:10,weight:'600'},formatter:v=>'$'+v.toFixed(1)+'M',align:'right',anchor:'end'},
@@ -1606,6 +1815,261 @@ function renderVTable(data,today) {
     const dayColor=isOpen?(days>90?'color:#e07878':'color:#8fada4'):(days>120?'color:#e07878':days>60?'color:#d4943a':'color:#2d8f65');
     return `<tr><td>${cfg.name}</td><td style="color:#969696">${cfg.cat}</td><td style="font-family:monospace;font-size:11px;color:#969696">${r.DocumentNo||r.DocNo||'—'}</td><td style="color:#969696">${fmtDate(r.DocDate)}</td><td style="color:#969696">${fmtDate(r.PstngDate||r.PostingDate||'')}</td><td style="color:#969696">${isOpen?'—':fmtDate(r.Clearing)}</td><td style="${dayColor};font-weight:600">${days}${typeof days==='number'?'d':''}</td><td style="text-align:right;color:var(--ink)">$${amt.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td><td>${isOpen?'<span class="badge badge-open">Open</span>':'<span class="badge badge-paid">Paid</span>'}</td></tr>`;
   }).join('');
+}
+
+/* ══════════════════════════════════════════
+   SALES PIPELINE VS SAP TAB
+══════════════════════════════════════════ */
+const CMP_METRICS = ['Revenue', 'Steel', 'Flange', 'Internal', 'DoorFrame'];
+const CMP_BOLD_SHARE = 0.10;
+
+function renderPipelineCompare() {
+  const tbody = document.getElementById('cmp-tbody');
+  if (!tbody || !pipelineCompare.length) return;
+  const num = v => (v === null || v === undefined || v === '') ? null : Number(v);
+  const k = v => v === null ? '<span style="color:var(--muted)">—</span>' : (v / 1000).toFixed(1);
+  // revenue above plan is favorable; costs below plan are favorable
+  // gaps over 10% of the pipeline value: Pipeline, SAP and Δ all in bold
+  const isBigGap = (pipe, sap) => pipe !== null && sap !== null && pipe !== 0 && Math.abs((sap - pipe) / pipe) > CMP_BOLD_SHARE;
+  const delta = (metric, pipe, sap) => {
+    if (pipe === null || sap === null) return '<span style="color:var(--muted)">—</span>';
+    const d = sap - pipe;
+    const good = metric === 'Revenue' ? d >= 0 : d <= 0;
+    const big = isBigGap(pipe, sap) ? ' cmp-big' : '';
+    const pct = pipe ? ` (${d >= 0 ? '+' : ''}${(d / pipe * 100).toFixed(0)}%)` : '';
+    const cls = (good ? 'cmp-up' : 'cmp-down') + big;
+    return `<span class="${cls}">${d >= 0 ? '+' : ''}${(d / 1000).toFixed(1)}</span>`
+      + (pct ? `<div style="font-size:10px" class="${cls}">${pct.trim()}</div>` : '');
+  };
+  const sec = v => (num(v) === null || num(v) === 0) ? '—' : Math.round(num(v)).toLocaleString('en-US');
+  tbody.innerHTML = pipelineCompare.map(r => {
+    const cells = CMP_METRICS.map((m, i) => {
+      const pipe = num(r[m + '_Pipeline']), sap = num(r[m + '_SAP']);
+      const b = isBigGap(pipe, sap) ? ' cmp-big' : '';
+      return `<td class="grp${b}">${k(pipe)}</td><td class="${b.trim()}">${k(sap)}</td><td>${delta(m, pipe, sap)}</td>`;
+    }).join('');
+    const sapNote = r.SapProjects
+      ? `<div style="font-size:10px;color:var(--muted)">SAP: ${escapeHtml(r.SapProjects)}</div>`
+      : '<div style="font-size:10px;color:var(--muted)">SAP: no actuals yet</div>';
+    return `<tr><td class="cust">${escapeHtml(r.Customer || '')}</td>`
+      + `<td class="name"><div style="font-weight:600;color:var(--ink)">${escapeHtml(r.Project)}</div>${sapNote}</td>`
+      + `<td style="text-align:center">${sec(r.PipelineSections)}</td><td>${sec(r.SapSections)}</td>${cells}</tr>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════
+   AMPC (PFE TRACKING) TAB — PFE vendor list
+══════════════════════════════════════════ */
+const PFE_UNASSIGNED = 'Unassigned';
+
+function renderAmpcTab() {
+  if (!document.getElementById('pfe-tbody-pfe') || !pfeVendors.length) return;
+
+  const total = pfeVendors.length;
+  const pfeCount = pfeVendors.filter(v => v.PFE === 'PFE').length;
+  setKPI('pfe-kc-total', String(total), '', 'PFE vendor list', 'hi');
+  setKPI('pfe-kc-pfe', String(pfeCount), '', 'Prohibited foreign entity', 'good');
+  setKPI('pfe-kc-non', String(total - pfeCount), '', 'Not a PFE', '');
+  // PFE share by amount: PFE amount / total amount over the projects in the PFE Ratio by Project table
+  const amtPfe = pfeTable.reduce((s, r) => s + r.PFE, 0);
+  const amtTotal = pfeTable.reduce((s, r) => s + r.Total, 0);
+  setKPI('pfe-kc-share', amtTotal > 0 ? (amtPfe / amtTotal * 100).toFixed(1) : '—', '%',
+         'PFE amount / total amount (projects below)', 'warn');
+
+  // Category filter options (filled once, kept when re-rendering)
+  const catSel = document.getElementById('pfe-f-cat');
+  if (catSel.options.length === 1) {
+    [...new Set(pfeVendors.map(v => v.Category || PFE_UNASSIGNED))].sort().forEach(c => {
+      const o = document.createElement('option'); o.value = c; o.textContent = c; catSel.appendChild(o);
+    });
+  }
+  const cat = catSel.value;
+  const q = document.getElementById('pfe-f-search').value.trim().toLowerCase();
+  const matches = v => (!cat || (v.Category || PFE_UNASSIGNED) === cat)
+    && (!q || v.Name.toLowerCase().includes(q) || v.Supplier.includes(q));
+
+  renderPfeProjectPivot();
+  renderPfeList('pfe', pfeVendors.filter(v => v.PFE === 'PFE'), matches);
+  renderPfeList('non', pfeVendors.filter(v => v.PFE !== 'PFE'), matches);
+}
+
+// PFE Ratio by Project: the PIVOT-sheet projects, in the PIVOT sheet's order
+function renderPfeProjectPivot() {
+  const tbody = document.getElementById('pfe-proj-tbody');
+  if (!tbody || !pfeTable.length) return;
+  const usd = v => (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const money = v => `<td style="text-align:right${v < 0 ? ';color:var(--negative)' : ''}">${usd(v)}</td>`;
+  const ratioCell = r => {
+    if (r === null || r === undefined) return '<td style="text-align:right;color:var(--muted)">—</td>';
+    const pct = r * 100;
+    const bar = Math.max(0, Math.min(100, pct));
+    return `<td style="text-align:right"><div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">`
+      + `<div style="width:80px;height:6px;background:#eef1f0;border-radius:3px;overflow:hidden">`
+      + `<div style="width:${bar}%;height:100%;background:#2d8f65"></div></div>`
+      + `<span style="min-width:52px;font-weight:600">${pct.toFixed(1)}%</span></div></td>`;
+  };
+  const sum = key => pfeTable.reduce((s, r) => s + r[key], 0);
+  const tot = { NonPFE: sum('NonPFE'), PFE: sum('PFE'), Total: sum('Total') };
+  const projectCell = r => `<td style="font-weight:600;color:var(--ink)">${escapeHtml(r.Project)}</td>`;
+  tbody.innerHTML = pfeTable.map(r =>
+    `<tr>${projectCell(r)}${money(r.NonPFE)}${money(r.PFE)}${money(r.Total)}${ratioCell(r.PFERatio)}</tr>`
+  ).join('') + `<tr class="row-bold row-highlight"><td>Grand Total</td>${money(tot.NonPFE)}${money(tot.PFE)}${money(tot.Total)}`
+    + ratioCell(tot.Total > 0 ? tot.PFE / tot.Total : null) + '</tr>';
+}
+
+// One of the two lists: key 'pfe' or 'non'; rows sorted by category, then name
+function renderPfeList(key, vendors, matches) {
+  const rows = vendors.filter(matches).sort((a, b) =>
+    (a.Category || 'zzz').localeCompare(b.Category || 'zzz') || a.Name.localeCompare(b.Name));
+  document.getElementById('pfe-count-' + key).textContent =
+    `${rows.length} of ${vendors.length} vendors — sorted by category, name`;
+  const tbody = document.getElementById('pfe-tbody-' + key);
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:24px;color:var(--muted)">No matching vendors</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(v => {
+    const category = v.Category ? escapeHtml(v.Category)
+                   : `<span style="color:var(--muted)">${PFE_UNASSIGNED}</span>`;
+    return `<tr><td style="font-family:monospace;font-size:12px;color:var(--body)">${escapeHtml(v.Supplier)}</td>`
+      + `<td>${escapeHtml(v.Name)}</td><td style="color:var(--body)">${category}</td></tr>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════
+   PROJECT REVENUE & OPERATING INCOME CHART
+   One very large project would flatten the rest, so the y-axis gets a wavy cut
+   between the largest value and the next one.
+══════════════════════════════════════════ */
+const AXIS_BREAK_RATIO = 1.8;  // cut the axis when the largest value is this many times the next
+
+function niceStep(x) {
+  const p = Math.pow(10, Math.floor(Math.log10(x)));
+  const n = x / p;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+}
+
+// {lo, hi, gap, step}: real values in (lo, hi) are removed from the axis; null when no cut is needed
+function computeAxisBreak(values) {
+  const pos = values.filter(v => v > 0).sort((a, b) => b - a);
+  if (pos.length < 2 || pos[0] < pos[1] * AXIS_BREAK_RATIO) return null;
+  const step = niceStep(pos[1] / 3);
+  const fine = step / 5;
+  const lo = Math.ceil(pos[1] * 1.1 / step) * step;
+  const hi = Math.floor(pos[0] * 0.9 / fine) * fine;
+  if (hi - lo < step) return null;
+  return { lo, hi, gap: hi - lo, step };
+}
+
+// White band with wavy edges at pixel row y, from x1 to x2
+function drawWaveBand(ctx, x1, x2, y) {
+  const half = 4, amp = 2, seg = 4;
+  const edge = (dy, reverse) => {
+    const pts = [];
+    for (let x = x1, k = 0; x <= x2 + seg; x += seg, k++) pts.push([Math.min(x, x2), y + dy + (k % 2 ? amp : -amp)]);
+    return reverse ? pts.reverse() : pts;
+  };
+  const top = edge(-half, false), bottom = edge(half, true);
+  ctx.beginPath();
+  [...top, ...bottom].forEach(([x, yy], k) => k ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy));
+  ctx.closePath();
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  ctx.strokeStyle = '#8fada4';
+  ctx.lineWidth = 1;
+  [top, bottom].forEach(line => {
+    ctx.beginPath();
+    line.forEach(([x, yy], k) => k ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy));
+    ctx.stroke();
+  });
+}
+
+// Draws the cut on the y-axis and across every bar that passes through it.
+// opts.bandAt (line charts with a two-band axis): one wavy band across the whole plot instead.
+const axisBreakPlugin = {
+  id: 'axisBreak',
+  afterDatasetsDraw(chart, args, opts) {
+    if (opts && opts.bandAt !== undefined && chart.scales.y) {
+      const y = chart.scales.y.getPixelForValue(opts.bandAt);
+      const ctx = chart.ctx;
+      ctx.save();
+      drawWaveBand(ctx, chart.chartArea.left, chart.chartArea.right, y);
+      drawWaveBand(ctx, chart.scales.y.right - 7, chart.scales.y.right + 7, y);
+      ctx.restore();
+      return;
+    }
+    const brk = opts && opts.brk;
+    if (!brk || !chart.scales.y) return;
+    const y = chart.scales.y.getPixelForValue(brk.lo);
+    const ctx = chart.ctx;
+    ctx.save();
+    chart.data.datasets.forEach((ds, di) => {
+      if (!chart.isDatasetVisible(di)) return;
+      chart.getDatasetMeta(di).data.forEach((bar, i) => {
+        if (opts.real[di][i] < brk.hi) return;
+        drawWaveBand(ctx, bar.x - bar.width / 2 - 2, bar.x + bar.width / 2 + 2, y);
+      });
+    });
+    const axisX = chart.scales.y.right;
+    drawWaveBand(ctx, axisX - 7, axisX + 7, y);
+    ctx.restore();
+  }
+};
+
+function renderProjectRevOiChart(monthRows) {
+  const rev = monthRows.map(r => r.Revenue / 1e6);
+  const oi  = monthRows.map(r => r.PL / 1e6);  // Cost Analysis "Profit and Loss", shown as Operating Income
+  const real = [rev, oi];
+  const brk = computeAxisBreak([...rev, ...oi]);
+  const squash = v => !brk ? v : v >= brk.hi ? v - brk.gap : Math.min(v, brk.lo);
+  const unsquash = v => !brk ? v : v > brk.lo ? v + brk.gap : v;
+
+  const valueLabel = color => ({
+    display: true, anchor: 'end', align: 'end', offset: 2, clamp: true,
+    color: ctx => real[ctx.datasetIndex][ctx.dataIndex] < 0 ? '#d64545' : color,
+    font: { size: 10, weight: '700' },
+    formatter: (v, ctx) => real[ctx.datasetIndex][ctx.dataIndex].toFixed(1)
+  });
+
+  const yScale = {
+    ticks: { color: '#8fada4', callback: v => '$' + +unsquash(v).toFixed(1) + 'M' },
+    grid: { color: '#e4ede9' }
+  };
+  if (brk) {
+    const lowest = Math.min(0, ...rev, ...oi);
+    yScale.min = Math.floor(lowest / brk.step) * brk.step;
+    yScale.max = squash(Math.max(...rev, ...oi)) * 1.12;
+    yScale.afterBuildTicks = axis => {
+      const ticks = [];
+      for (let v = yScale.min; v < brk.lo - brk.step * 0.3; v += brk.step) ticks.push(v);
+      for (let v = Math.ceil(brk.hi / brk.step) * brk.step; v - brk.gap <= axis.max; v += brk.step) {
+        if (v - brk.gap > brk.lo + brk.step * 0.5) ticks.push(v - brk.gap);
+      }
+      axis.ticks = ticks.map(value => ({ value }));
+    };
+  }
+
+  mkChart('pc-revpl', 'bar', {
+    labels: monthRows.map(r => r.Project),
+    datasets: [
+      { label: 'Revenue', data: rev.map(squash), backgroundColor: 'rgba(126,181,212,.6)',
+        minBarLength: 3, datalabels: valueLabel('#3f86ad') },
+      { label: 'Operating Income', data: oi.map(squash), minBarLength: 3,
+        backgroundColor: oi.map(v => v >= 0 ? 'rgba(93,184,138,.8)' : 'rgba(224,120,120,.8)'),
+        datalabels: valueLabel('#2d8f65') }
+    ]
+  }, {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: '#8fada4', font: { size: 11 } } },
+      tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtUsdM(real[c.datasetIndex][c.dataIndex])}` } },
+      axisBreak: { brk, real }
+    },
+    scales: {
+      x: { ticks: { color: '#8fada4' }, grid: { color: '#e4ede9' } },
+      y: yScale
+    }
+  });
 }
 
 /* ══════════════════════════════════════════
@@ -1652,14 +2116,12 @@ function renderProjectsTab() {
   const chartRows=projectRows.filter(r=>(!selMonth||r.Month===selMonth)&&(!selCustomer||r.Customer===selCustomer)&&(!selProject||r.Project===selProject));
   const displayMonth=selMonth||latestMonth;
   const monthRows=chartRows.filter(r=>r.Month===displayMonth);
-  mkChart('pc-revpl','bar',{labels:monthRows.map(r=>r.Project),datasets:[{label:'Revenue',data:monthRows.map(r=>r.Revenue/1e6),backgroundColor:'rgba(126,181,212,.6)'},{label:'P&L',data:monthRows.map(r=>r.PL/1e6),backgroundColor:monthRows.map(r=>r.PL>=0?'rgba(93,184,138,.8)':'rgba(224,120,120,.8)')}]},barOpts({ylabel:'USD M'}));
+  renderProjectRevOiChart(monthRows);
   mkChart('pc-margin','bar',{labels:monthRows.map(r=>r.Project),datasets:[{label:'Margin %',data:monthRows.map(r=>r.Margin*100),backgroundColor:monthRows.map(r=>r.PL>=0?'#5db88a':'#e07878'),borderWidth:0}]},{
     indexAxis:'y',responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:false},datalabels:{display:true,color:'#1a2e24',font:{size:10},formatter:v=>v.toFixed(1)+'%',align:'right',anchor:'end'},tooltip:{callbacks:{label:c=>c.raw.toFixed(2)+'%'}}},
     scales:{x:{ticks:{color:'#8fada4',callback:v=>v.toFixed(0)+'%'},grid:{color:'#e4ede9'},title:{display:true,text:'Margin %',color:'#8fada4'}},y:{ticks:{color:'#8fada4',font:{size:11}},grid:{color:'#e4ede9'}}}
   });
-  const allMonths=[...new Set(chartRows.map(r=>r.Month))].sort();
-  mkChart('pc-trend','line',{labels:allMonths,datasets:[{label:'Revenue',data:allMonths.map(m=>chartRows.filter(r=>r.Month===m).reduce((s,r)=>s+r.Revenue,0)/1e6),borderColor:'#7eb5d4',backgroundColor:'rgba(126,181,212,.15)',fill:true,tension:.35},{label:'P&L',data:allMonths.map(m=>chartRows.filter(r=>r.Month===m).reduce((s,r)=>s+r.PL,0)/1e6),borderColor:'#5db88a',backgroundColor:'transparent',tension:.35}]},barOpts({ylabel:'USD M'}));
   const tableRows=projectRows.filter(r=>(!selMonth||r.Month===selMonth)&&(!selCustomer||r.Customer===selCustomer)&&(!selProject||r.Project===selProject)).sort((a,b)=>String(b.Month).localeCompare(String(a.Month)));
   const tbody=document.getElementById('ptbody');
   if(!tableRows.length){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">No matching records</td></tr>`;return;}
@@ -1760,7 +2222,7 @@ function normalizeMonth(m) {
 }
 
 function parseMergedFile(wb) {
-  const out = { fs: [], vendor: [], project: [], forecast: null };
+  const out = { fs: [], vendor: [], project: [], forecast: null, forecastHistory: [], pfeVendors: [], pfeProjects: [], pfeTable: [], vendorNames: {}, vendorSpend: [], vendorCats: {}, pipelineCompare: [] };
 
   // --- FS sheet (Closing Package 기준 '000 USD 그대로 — /1000 안 함) ---
   const fsSheet = wb.SheetNames.find(n => n === 'FS');
@@ -1801,6 +2263,76 @@ function parseMergedFile(wb) {
     out.forecast = rows; // raw 2D array
   }
 
+  // --- VendorNames sheet (vendor code → name) ---
+  const namesSheet = wb.SheetNames.find(n => n.toUpperCase() === 'VENDORNAMES');
+  if (namesSheet) {
+    XLSX.utils.sheet_to_json(wb.Sheets[namesSheet], { defval: '' }).forEach(r => {
+      const code = String(r.Supplier).trim();
+      if (code && r.Name) out.vendorNames[code] = String(r.Name).trim();
+    });
+  }
+
+  // --- PipelineVsSAP sheet (Sales Pipeline vs SAP tab) ---
+  const cmpSheet = wb.SheetNames.find(n => n.toUpperCase() === 'PIPELINEVSSAP');
+  if (cmpSheet) {
+    out.pipelineCompare = XLSX.utils.sheet_to_json(wb.Sheets[cmpSheet], { defval: null }).filter(r => r.Project);
+  }
+
+  // --- VendorCategories sheet (category per vendor from the GL line items) ---
+  const catSheet = wb.SheetNames.find(n => n.toUpperCase() === 'VENDORCATEGORIES');
+  if (catSheet) {
+    XLSX.utils.sheet_to_json(wb.Sheets[catSheet], { defval: '' }).forEach(r => {
+      const code = String(r.Supplier).trim();
+      if (code) out.vendorCats[code] = { cost: String(r.CostCategory).trim(), rule: String(r.RuleCategory).trim(),
+                                         material: String(r.MaterialCategory).trim() };
+    });
+  }
+
+  // --- VendorSpend sheet (Vendor tab: Top 10 by total spend) ---
+  const spendSheet = wb.SheetNames.find(n => n.toUpperCase() === 'VENDORSPEND');
+  if (spendSheet) {
+    out.vendorSpend = XLSX.utils.sheet_to_json(wb.Sheets[spendSheet], { defval: '' })
+      .map(r => ({ Supplier: String(r.Supplier).trim(), Name: String(r.Name).trim(), TermsCode: String(r.TermsCode).trim(),
+                   Terms: String(r.Terms).trim(), Amount: Number(r.Amount) || 0 }))
+      .filter(r => r.Supplier);
+  }
+
+  // --- PFEVendors sheet (AMPC tab) ---
+  const pfeSheet = wb.SheetNames.find(n => n.toUpperCase() === 'PFEVENDORS');
+  if (pfeSheet) {
+    out.pfeVendors = XLSX.utils.sheet_to_json(wb.Sheets[pfeSheet], { defval: '' })
+      .map(r => ({ Supplier: String(r.Supplier).trim(), Name: String(r.Name).trim(),
+                   Category: String(r.Category).trim(), PFE: String(r.PFE).trim() }))
+      .filter(r => r.Name);
+  }
+
+  // --- PFEProjects sheet (AMPC tab pivot) ---
+  const pfeProjSheet = wb.SheetNames.find(n => n.toUpperCase() === 'PFEPROJECTS');
+  if (pfeProjSheet) {
+    out.pfeProjects = XLSX.utils.sheet_to_json(wb.Sheets[pfeProjSheet], { defval: null })
+      .filter(r => r.Project)
+      .map(r => ({ Project: String(r.Project).trim(), NonPFE: Number(r.NonPFE) || 0, PFE: Number(r.PFE) || 0,
+                   Total: Number(r.Total) || 0, PFERatio: r.PFERatio === null || r.PFERatio === '' ? null : Number(r.PFERatio) }));
+  }
+
+  // --- PFEProjectTable sheet (AMPC tab: PIVOT-sheet projects, display order) ---
+  const tableSheet = wb.SheetNames.find(n => n.toUpperCase() === 'PFEPROJECTTABLE');
+  if (tableSheet) {
+    out.pfeTable = XLSX.utils.sheet_to_json(wb.Sheets[tableSheet], { defval: null })
+      .filter(r => r.Project)
+      .map(r => ({ Project: String(r.Project).trim(), NonPFE: Number(r.NonPFE) || 0, PFE: Number(r.PFE) || 0,
+                   Total: Number(r.Total) || 0,
+                   PFERatio: r.PFERatio === null || r.PFERatio === '' ? null : Number(r.PFERatio) }));
+  }
+
+  // --- ForecastHistory sheet (full-year totals per forecast version) ---
+  const hSheet = wb.SheetNames.find(n => n.toUpperCase() === 'FORECASTHISTORY');
+  if (hSheet) {
+    out.forecastHistory = XLSX.utils.sheet_to_json(wb.Sheets[hSheet], { defval: 0 })
+      .filter(r => r.Version)
+      .sort((a, b) => (Number(a.ActualMonths) || 0) - (Number(b.ActualMonths) || 0));
+  }
+
   return out;
 }
 
@@ -1817,18 +2349,20 @@ function parseVendorFile(wb) {
     Type:       ['Type','Document Type'],
     PstngDate:  ['Pstng Date','Posting Date','PstngDate'],
     DocDate:    ['Doc. Date','Document Date','DocDate'],
-    AmountUSD:  ['Amt in loc.cur.','Amount in local currency','AmountUSD'],
-    Clearing:   ['Clearing','Clearing Date'],
+    AmountUSD:  ['Amt in loc.cur.','Amount in local currency','Amount in local curr','AmountUSD'],
+    Clearing:   ['Clearing','Clearing Date'],  // matched case-insensitively ('Clearing date')
     GL:         ['G/L','G/L Account','GL'],
     ClrngDoc:   ['Clrng doc.','Clearing Document','ClrngDoc'],
     Text:       ['Text'],
   };
-  const docNoNames=ALIASES.DocumentNo;
-  const headerIdx=rawRows.findIndex(r=>r&&r.some(v=>v!=null&&docNoNames.includes(String(v).trim())));
+  // header names are compared case-insensitively (FBL1N layouts differ: 'Clearing Date' / 'Clearing date')
+  const norm=v=>String(v).trim().toLowerCase();
+  const docNoNames=ALIASES.DocumentNo.map(norm);
+  const headerIdx=rawRows.findIndex(r=>r&&r.some(v=>v!=null&&docNoNames.includes(norm(v))));
   if(headerIdx===-1){console.warn('Vendor sheet: document number header not found');return[];}
   const colIdx={};
-  rawRows[headerIdx].forEach((h,i)=>{if(h!==null&&h!==undefined)colIdx[String(h).trim()]=i;});
-  const idxOf=field=>{for(const n of ALIASES[field]){if(colIdx[n]!==undefined)return colIdx[n];}return -1;};
+  rawRows[headerIdx].forEach((h,i)=>{if(h!==null&&h!==undefined&&colIdx[norm(h)]===undefined)colIdx[norm(h)]=i;});
+  const idxOf=field=>{for(const n of ALIASES[field]){if(colIdx[norm(n)]!==undefined)return colIdx[norm(n)];}return -1;};
   const fieldIdx={};
   Object.keys(ALIASES).forEach(f=>{fieldIdx[f]=idxOf(f);});
   const get=(row,field)=>{const i=fieldIdx[field];const v=(i>=0&&i<row.length)?row[i]:null;return v==null?'':v;};
@@ -1860,8 +2394,73 @@ function parseVendorFile(wb) {
 function setKPI(id, val, unit, sub, cls) {
   const el=document.getElementById(id); if(!el) return;
   el.className='kpi-card'+(cls?' '+cls:'');
-  el.querySelector('.kpi-value').innerHTML=val+(unit?`<span class="kpi-unit">${unit}</span>`:'');
-  el.querySelector('.kpi-sub').textContent=sub;
+  const valueEl=el.querySelector('.kpi-value');
+  valueEl.innerHTML=escapeHtml(val)+(unit?`<span class="kpi-unit">${unit}</span>`:'');
+  valueEl.classList.toggle('neg', parseFloat(String(val).replace(/,/g,''))<0);
+  el.querySelector('.kpi-sub').innerHTML=highlightNegatives(sub);
+}
+function escapeHtml(v) {
+  return String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+// Wrap negative numbers ("-0.4%", "-1,234") in red; hyphens inside dates/words are left alone
+function highlightNegatives(text) {
+  return escapeHtml(text).replace(/(^|[^\w.])(-\d[\d,]*(?:\.\d+)?%?)/g, '$1<span class="neg">$2</span>');
+}
+// Line value label that goes above the point when this line is the higher one at that x and
+// below when it is lower, so the labels of two crossing lines never land on each other.
+// Positions come from the scales (final layout), not from point elements, which are still
+// mid-animation when the plugin resolves these options.
+const LABEL_GAP = 10;        // px between a point and its label
+const LABEL_ROOM_PX = 30;    // vertical room a label needs between two neighbouring lines
+function smartLineLabel(color, formatter) {
+  const isLine = (chart, di) => (chart.data.datasets[di].type || chart.config.type) === 'line';
+  const pixelY = (chart, di, i) => {
+    const ds = chart.data.datasets[di], v = ds.data[i];
+    if (v === null || v === undefined || v === '' || isNaN(Number(v))) return null;
+    const scale = chart.scales[ds.yAxisID || 'y'];
+    return scale ? scale.getPixelForValue(Number(v)) : null;
+  };
+  // Other visible lines at this x: {y, di}
+  const others = ctx => ctx.chart.data.datasets
+    .map((d, di) => di)
+    .filter(di => di !== ctx.datasetIndex && isLine(ctx.chart, di) && ctx.chart.isDatasetVisible(di))
+    .map(di => ({ y: pixelY(ctx.chart, di, ctx.dataIndex), di }))
+    .filter(o => o.y !== null);
+  // Where this point's label goes: top line → above, bottom line → below, a line in between
+  // → the side with room for a label, or to the right of the point when both sides are tight.
+  // Smaller y = higher on screen; equal points are ordered by dataset index.
+  const placement = ctx => {
+    const me = pixelY(ctx.chart, ctx.datasetIndex, ctx.dataIndex);
+    if (me === null) return 'top';
+    const isAbove = o => o.y < me || (o.y === me && o.di < ctx.datasetIndex);
+    const list = others(ctx);
+    const above = list.filter(isAbove), below = list.filter(o => !isAbove(o));
+    if (!above.length) return 'top';
+    if (!below.length) return 'bottom';
+    const gapAbove = me - Math.max(...above.map(o => o.y));
+    const gapBelow = Math.min(...below.map(o => o.y)) - me;
+    if (Math.max(gapAbove, gapBelow) < LABEL_ROOM_PX) {
+      // beside the point; the last point's label goes to the left so it stays inside the chart
+      return ctx.dataIndex === ctx.dataset.data.length - 1 ? 'left' : 'right';
+    }
+    return gapAbove > gapBelow ? 'top' : 'bottom';
+  };
+  return {
+    display:true, anchor:'center', clamp:true,
+    align: placement,
+    offset: LABEL_GAP,
+    // realData: original values when the plotted data is rescaled (two-band axis)
+    color: ctx => Number((ctx.dataset.realData || ctx.dataset.data)[ctx.dataIndex]) < 0 ? '#d64545' : color,
+    backgroundColor: 'rgba(255,255,255,.88)', borderRadius: 3,
+    padding: { top: 1, bottom: 1, left: 3, right: 3 },
+    font:{size:10, weight:'700'},
+    formatter
+  };
+}
+// USD M label with the sign in front: -0.2 -> "-$0.2M"
+function fmtUsdM(v) {
+  const n=Number(v)||0;
+  return (n<0?'-':'')+'$'+Math.abs(n).toFixed(1)+'M';
 }
 
 function fmt000(v) {
@@ -1928,7 +2527,8 @@ function donutOpts() {
     responsive:true, maintainAspectRatio:false,
     plugins:{
       legend:{ position:'right', labels:{ color:'#8fada4', font:{size:11} } },
-      datalabels:{ display:true, color:'#ffffff', font:{size:10,weight:'700'},
+      datalabels:{ display:true, color:'#1a2e24', font:{size:12,weight:'700'},
+        textStrokeColor:'rgba(255,255,255,.9)', textStrokeWidth:3, textAlign:'center',
         formatter:(v,ctx)=>{
           const total=ctx.chart.data.datasets[0].data.reduce((a,b)=>a+(b||0),0);
           if(!total||v<0.01) return null;
@@ -1951,12 +2551,32 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
   document.querySelector(`.tab-btn[onclick="switchTab('${tab}')"]`).classList.add('active');
+  placeMonthSelector(tab);
+  // Charts built while their tab was hidden have a 0×0 canvas and do not recover on their own,
+  // so redraw the tab now that it is visible.
+  const render = TAB_RENDERERS[tab];
+  if (render) requestAnimationFrame(() => {
+    try { render(); } catch (e) { console.warn('render ' + tab + ' failed:', e); }
+  });
+}
+const TAB_RENDERERS = {
+  earnings: () => renderEarningsTab(),
+  fs:       () => renderFSTab(),
+  vendor:   () => renderVendorTab(),
+  projects: () => renderProjectsTab(),
+  ampc:     () => renderAmpcTab(),
+  pipeline: () => renderPipelineCompare(),
+};
+
+// Every tab has a .month-slot in its header row; the selector moves into the active tab's slot
+function placeMonthSelector(tab) {
+  const selector = document.getElementById('month-selector');
+  const slot = document.querySelector('#tab-' + tab + ' .month-slot');
+  if (!selector) return;
+  if (slot) slot.appendChild(selector);
+  selector.style.display = slot ? '' : 'none';
 }
 
-function populateVendorFilter() {
-  const sel=document.getElementById('vf-vendor');
-  Object.entries(VENDOR_CFG).forEach(([id,cfg])=>{const opt=document.createElement('option');opt.value=id;opt.textContent=`${cfg.name} (${id})`;sel.appendChild(opt);});
-}
 </script>
 </body>
 </html>

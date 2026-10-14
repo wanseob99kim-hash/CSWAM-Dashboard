@@ -12,8 +12,11 @@ HEADER_SCAN_ROWS = 20
 
 
 def latest_vendor_file(folder: Path | None, fallback: Path) -> Path | None:
-    """Most recently modified file in Raw data/Vendor, else <base>/vendor.xlsx."""
-    files = list_xlsx(folder) if folder else []
+    """Most recently modified vendor line-item file in Raw data/Vendor, else <base>/vendor.xlsx.
+
+    The folder also holds the GL line items (used for categories), so 'GL …' workbooks are skipped.
+    """
+    files = [p for p in list_xlsx(folder) if not p.name.upper().startswith("GL")] if folder else []
     if files:
         return max(files, key=lambda p: p.stat().st_mtime)
     return fallback if fallback.is_file() else None
@@ -35,6 +38,32 @@ def read_vendor_table(path: Path) -> list[list]:
     keep = [i for i, h in enumerate(header) if text(h)]
     table = [[row[i] if i < len(row) else None for i in keep] for row in rows[header_idx:]]
     return [table[0]] + [r for r in table[1:] if any(v not in (None, "") for v in r)]
+
+
+VENDOR_NAME_SHEET = "vendor list"  # sheet with Name / Supplier columns (optional)
+
+
+def read_vendor_names(path: Path) -> list[dict]:
+    """{Supplier, Name} rows from the workbook's 'Vendor list' sheet; [] when it has none."""
+    wb = load_values(path, read_only=True)
+    try:
+        ws = next((w for w in wb.worksheets if w.title.strip().lower() == VENDOR_NAME_SHEET), None)
+        rows = [list(r) for r in ws.iter_rows(values_only=True)] if ws is not None else []
+    finally:
+        wb.close()
+    if not rows:
+        return []
+    header = [text(h) for h in rows[0]]
+    if "Name" not in header or "Supplier" not in header:
+        return []
+    ni, si = header.index("Name"), header.index("Supplier")
+    names: list[dict] = []
+    for r in rows[1:]:
+        code, name = r[si] if si < len(r) else None, text(r[ni]) if ni < len(r) else ""
+        code = str(int(code)) if isinstance(code, (int, float)) else text(code)
+        if code and name:
+            names.append({"Supplier": code, "Name": name})
+    return names
 
 
 def max_posting_date(table: list[list]) -> datetime | None:

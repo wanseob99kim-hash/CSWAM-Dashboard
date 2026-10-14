@@ -13,3 +13,7 @@ OneDrive_*/
 __pycache__/
 .pytest_cache/
 .coverage
+
+# Saved copies of the live dashboard (contain rendered financial figures)
+CS WIND America*
+live_index.html

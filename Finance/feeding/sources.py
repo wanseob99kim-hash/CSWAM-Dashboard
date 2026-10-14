@@ -38,16 +38,17 @@ def month_from_name(name: str) -> str | None:
     return f"{m.group(1)}-{m.group(2)}" if m else None
 
 
-def load_values(path: Path) -> openpyxl.Workbook:
+def load_values(path: Path, read_only: bool = False) -> openpyxl.Workbook:
     """Open a workbook with cached cell values.
 
     Some exports carry broken defined names (e.g. print titles '#N/A') that make
     openpyxl refuse the file; names are irrelevant here, so retry without them.
+    read_only=True streams the file (much faster for large workbooks; values only).
     """
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         try:
-            return openpyxl.load_workbook(path, data_only=True)
+            return openpyxl.load_workbook(path, data_only=True, read_only=read_only)
         except ValueError:
             pass  # broken defined names — retry below
         except Exception as exc:  # corrupt / not an xlsx: report per file, keep the run going
@@ -55,7 +56,7 @@ def load_values(path: Path) -> openpyxl.Workbook:
         original = _wb_reader.WorkbookParser.assign_names
         _wb_reader.WorkbookParser.assign_names = lambda self: None
         try:
-            return openpyxl.load_workbook(path, data_only=True)
+            return openpyxl.load_workbook(path, data_only=True, read_only=read_only)
         except Exception as exc:
             raise ValueError(f"{path.name}: 파일 열기 실패 ({exc})") from exc
         finally:

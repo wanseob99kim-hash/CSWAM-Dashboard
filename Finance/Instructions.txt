@@ -4,7 +4,12 @@
    - Raw data\Financials\  CSWAM New Monthly Closing Pkg_YYYY.MM.xlsx
    - Raw data\Forecast\    CSWAM Rolling FCST N+M.xlsx   (새 FCST 나왔을 때만)
    - Raw data\Projects\    Cost Analysis based on Project_YYYY.MM.xlsx
-   - Raw data\Vendor\      FBL1N 말일자 다운로드 파일 (아이콘 칼럼 안 지워도 됨, 자동 삭제)
+   - Raw data\Vendor\      FBL1N 말일자 다운로드 파일 (Vendor Line item, 아이콘 칼럼 안 지워도 됨)
+                           GL Line item 파일 (업체별 분류 = 송장 문서의 비용계정)
+   - Raw data\PFE\         ZMM009 Invoice Verification 파일 (PFE Vendor List 시트 → AMPC 탭)
+                           (AMPC 표 대상 프로젝트 = 그 파일 PIVOT 시트 요약표의 프로젝트,
+                            금액 = 2025·2026 시트, Total = Non-PFE + PFE, Ratio = PFE / Total)
+   - Raw data\Sales Pipeline\  Sales Pipeline 파일 (이름에 Pipeline, MPP Invocing 시트 → Pipeline vs SAP 탭)
 
 2. Claude Code 에 "대시보드 업데이트해줘" 라고 요청
    → Claude 가 점검 결과 보고 → "업로드할까요?" 확인 → 업로드

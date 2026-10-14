@@ -15,6 +15,20 @@ description: CSWAM Finance 대시보드 월간 업데이트 — Raw data 폴더�
 | `Raw data/Forecast/` | `CSWAM Rolling FCST N+M.xlsx` | N 가장 큰 파일 자동 선택 (동률이면 `_rev` 붙은 쪽) |
 | `Raw data/Projects/` | `Cost Analysis based on Project_YYYY.MM.xlsx` | PIVOT 시트 |
 | `Raw data/Vendor/` | FBL1N 말일자 다운로드 (아무 이름) | 가장 최근 수정 파일 사용. 헤더 빈 칼럼(아이콘) 자동 삭제. 폴더 비어있으면 `vendor.xlsx` 사용 |
+| `Raw data/PFE/` | `ZMM009 Invoice Verification ….xlsx` (이름에 ZMM009) | AMPC 탭 원본. 없으면 경고만 (선택 항목) |
+| `Raw data/Sales Pipeline/` | `CSAM_Pipeline….xlsx` (이름에 Pipeline) | Pipeline vs SAP 탭 원본. 이 폴더만 봄, 여러 개면 최근 수정 파일. 없으면 경고만 |
+| `Raw data/Vendor/` | `GL Line item.XLSX` (이름이 GL로 시작) | Vendor 분류. 업체 송장 문서번호로 GL 비용계정 조회 → GL Name. GR/IR·가격차이·Clearing·대차대조표 계정은 제외, 비용계정 금액이 50% 이상일 때만 사용. 못 찾으면 규칙(OTA 105477=Logistics, 106088=Customs Duty) → 알려진 분류 → 자재유형. 없으면 경고만 |
+
+**Sales Pipeline vs SAP 탭 (2026-10-14)**: Sales Pipeline 파일(`Raw data/Sales Pipeline/`, 이름에 Pipeline)의 `MPP Invocing` 시트 섹션당 값(Rev K USD/Sec ×1000, ASP+Handling: Plate=Steel, Flange, Internal, Door Frame) ↔ 최신 Closing Pkg `1-7` 시트 프로젝트별 합계 ÷ QTY. Door Frame = SAP Aluminum. 이름 자동 매칭(연도·사이즈 제거, 유사도 0.85), Buffalo Gap은 100T+2T 합산, `2026 GE 114m Forecast`→`4Q25 114M G920`(코드 PROJECT_OVERRIDES), 'Forecast' 줄은 제외. SGRE 프로젝트는 포함 (2026-10-14 사용자 확정, AMPC 탭의 SGRE 제외와 별개).
+
+**AMPC "PFE Ratio by Project" 표 로직 (2026-10-14 사용자 확정, 사용자 엑셀 피벗과 소수점까지 일치 확인)**
+- 대상 프로젝트·순서: ZMM009 파일 `PIVOT…` 시트 요약표의 `Project Name` 열 (Grand Total 전까지). 없으면 `Relevant Projects…` 시트의 프로젝트.
+- 금액: `2025`·`2026` 시트(연도 이름 시트 전부)의 Amount LC.
+- 구분: 전표 업체 코드 ↔ `PFE Vendor List` 시트. 목록에 없는 업체는 제외.
+- Total = Non-PFE + PFE, PFE (Ratio) = PFE ÷ Total, SAP 프로젝트별 한 줄 + Grand Total.
+- 대상 프로젝트를 바꾸려면 사용자가 엑셀 PIVOT 시트를 바꾸면 됨 (코드 수정 불필요).
+
+Forecast 폴더의 **모든 버전 파일**에서 연간 Total을 모아 P&L 탭의 "버전별 연간 전망" 그래프를 만든다 (실행 2분 정도 추가).
 
 각 폴더 아래 같은 이름 하위폴더(`Financials/Financials/`)도 인식한다.
 

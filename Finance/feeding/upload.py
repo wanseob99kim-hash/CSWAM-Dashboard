@@ -9,6 +9,7 @@ from pathlib import Path
 WORKER_URL = "https://tiny-dew-e513.leeway-id.workers.dev/"
 SECRET_ENV = "CSWAM_DASH_SECRET"
 TIMEOUT_SECONDS = 60
+USER_AGENT = "CSWAM-Dashboard-Feeding/1.0"
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -37,6 +38,8 @@ def upload(path: Path, remote_name: str) -> str:
             "x-secret": secret,
             "x-filename": remote_name,
             "Content-Type": "application/octet-stream",
+            # Cloudflare rejects the default 'Python-urllib' signature (403, error code 1010)
+            "User-Agent": USER_AGENT,
         },
     )
     try:
