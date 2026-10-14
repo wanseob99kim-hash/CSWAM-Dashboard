@@ -84,7 +84,9 @@ describe("workspace API in the built worker", () => {
       modules: true,
       script: "export default { fetch() { return new Response(null, { status: 204 }); } }",
       d1Databases: { DB: "ssr-api" },
+      r2Buckets: { FILES: "ssr-files" },
     });
+    globalThis.__CLOUDFLARE_ENV__.FILES = await mf.getR2Bucket("FILES");
     const d1 = await mf.getD1Database("DB");
     const drizzleDir = new URL("../drizzle/", import.meta.url);
     const { entries } = JSON.parse(readFileSync(new URL("meta/_journal.json", drizzleDir), "utf8"));
@@ -101,6 +103,7 @@ describe("workspace API in the built worker", () => {
 
   after(async () => {
     delete globalThis.__CLOUDFLARE_ENV__.DB;
+    delete globalThis.__CLOUDFLARE_ENV__.FILES;
     await mf?.dispose();
   });
 
@@ -128,5 +131,28 @@ describe("workspace API in the built worker", () => {
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.deepEqual(body.data.applied.todoItems, [{ id: "todo-ssr", version: 1, deleted: false }]);
+  });
+
+  test("file routes upload, list, download, and delete an attachment", async () => {
+    const form = new FormData();
+    form.set("file", new File(["packing list"], "PL B1.pdf"));
+    form.set("projectId", "project-1700");
+    form.set("ownerType", "supplier_plan_batch");
+    form.set("ownerId", "batch-ssr");
+    form.set("kind", "packing_list");
+    const uploaded = await render("/api/files", { method: "POST", headers: USER, body: form });
+    assert.equal(uploaded.status, 201);
+    const { data: file } = await uploaded.json();
+
+    const listed = await (await render("/api/files?ownerType=supplier_plan_batch&ownerId=batch-ssr", { headers: USER })).json();
+    assert.deepEqual(listed.data.map((item) => item.id), [file.id]);
+
+    const downloaded = await render(`/api/files/${file.id}`, { headers: USER });
+    assert.equal(downloaded.status, 200);
+    assert.match(downloaded.headers.get("content-disposition"), /^attachment; filename="PL B1.pdf"/);
+    assert.equal(await downloaded.text(), "packing list");
+
+    assert.equal((await render(`/api/files/${file.id}`, { method: "DELETE", headers: USER })).status, 200);
+    assert.equal((await render(`/api/files/${file.id}`, { headers: USER })).status, 404);
   });
 });

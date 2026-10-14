@@ -1,43 +1,12 @@
 // HTTP layer for the workspace API. Route files only pass in the D1 database,
 // so these handlers can be tested against a local D1.
-import { userFromHeaders, type ChatGPTUser } from "../lib/auth-headers";
+import { fail, ok, serverError as failWithLog } from "./http";
+import { requestUser } from "./request-user";
 import { MAX_SYNC_BODY_BYTES, sinceSchema, syncRequestSchema } from "./validation";
 import { applySync, readWorkspace, type Clock, type WorkspaceDb } from "./workspace-service";
 
-/**
- * Local development has no Sites identity headers. When VITE_DEV_USER_EMAIL is set
- * (e.g. in .env.development.local) the dev server acts as that user. import.meta.env.DEV
- * is false in production builds, so this fallback is compiled out there.
- */
-const DEV_USER_EMAIL = import.meta.env.DEV ? import.meta.env.VITE_DEV_USER_EMAIL : undefined;
-
-function requestUser(request: Request): ChatGPTUser | null {
-  const user = userFromHeaders(request.headers);
-  if (user || !DEV_USER_EMAIL) return user;
-  return { email: DEV_USER_EMAIL, displayName: DEV_USER_EMAIL, fullName: null };
-}
-
-type ApiResponse<T> = {
-  success: boolean;
-  data: T | null;
-  error: string | null;
-};
-
-function respond<T>(status: number, body: ApiResponse<T>): Response {
-  return Response.json(body, {
-    status,
-    headers: { "cache-control": "no-store" },
-  });
-}
-
-const fail = (status: number, error: string) => respond(status, { success: false, data: null, error });
-const ok = <T>(data: T) => respond(200, { success: true, data, error: null });
-
-function serverError(context: string, error: unknown): Response {
-  // Details go to the Worker log only; clients get a generic message.
-  console.error(`[workspace-api] ${context}`, error);
-  return fail(500, "Something went wrong while saving or loading the workspace. Please try again.");
-}
+const WORKSPACE_ERROR = "Something went wrong while saving or loading the workspace. Please try again.";
+const serverError = (context: string, error: unknown) => failWithLog("workspace-api", context, error, WORKSPACE_ERROR);
 
 export async function handleGetWorkspace(request: Request, db: WorkspaceDb, clock: Clock = () => new Date()) {
   if (!requestUser(request)) return fail(401, "Sign in to load the workspace.");

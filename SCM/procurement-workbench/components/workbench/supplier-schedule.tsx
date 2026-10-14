@@ -1,3 +1,4 @@
+import { FileAttachments } from "@/components/workbench/file-attachments";
 import { dateInputToMidweekDate, formatInputMidweekDate, formatScheduleWeek } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
 import { getMaterialAllocationQty } from "@/lib/supplier-plan";
@@ -69,11 +70,15 @@ export function SupplierSchedule({ wb }: SupplierScheduleProps) {
                     Template body
                     <textarea value={supplierPlan.body} onChange={(event) => updateSupplierPlan((plan) => ({ ...plan, body: event.target.value }))} />
                   </label>
-                  <label className="wide-field">
-                    Attachments
-                    <input type="file" multiple onChange={(event) => updateSupplierPlan((plan) => ({ ...plan, attachments: Array.from(event.target.files ?? []).map((file) => file.name) }))} />
-                    <small>{supplierPlan.attachments.length ? supplierPlan.attachments.join(" / ") : "Attachment names are saved for tracking; actual email attachment needs Outlook/Gmail integration."}</small>
-                  </label>
+                  <div className="wide-field">
+                    <FileAttachments
+                      label="Attachments"
+                      owner={{ projectId: supplierPlan.projectId, ownerType: "supplier_plan", ownerId: supplierPlan.id, kind: "attachment" }}
+                      names={supplierPlan.attachments}
+                      onNamesChange={(attachments) => updateSupplierPlan((plan) => ({ ...plan, attachments }))}
+                      emptyText="No files yet. Uploaded files are shared with the team; attach them to the email from your mail client."
+                    />
+                  </div>
                 </div>
                 <div className="supplier-email-preview">
                   <div className="email-preview-head">
@@ -224,16 +229,20 @@ export function SupplierSchedule({ wb }: SupplierScheduleProps) {
                         <strong>{batch.batch}</strong>
                         <small>PU week {formatScheduleWeek(batch.puWeek)}</small>
                       </span>
-                      <label>
-                        Commercial invoice
-                        <input type="file" multiple onChange={(event) => updateSupplierBatch(batch.id, { commercialInvoiceFiles: Array.from(event.target.files ?? []).map((file) => file.name) })} />
-                        <small>{batch.commercialInvoiceFiles.join(" / ") || "Pending"}</small>
-                      </label>
-                      <label>
-                        Packing list
-                        <input type="file" multiple onChange={(event) => updateSupplierBatch(batch.id, { packingListFiles: Array.from(event.target.files ?? []).map((file) => file.name) })} />
-                        <small>{batch.packingListFiles.join(" / ") || "Pending"}</small>
-                      </label>
+                      <FileAttachments
+                        label="Commercial invoice"
+                        owner={{ projectId: supplierPlan.projectId, ownerType: "supplier_plan_batch", ownerId: batch.id, kind: "commercial_invoice" }}
+                        names={batch.commercialInvoiceFiles}
+                        onNamesChange={(commercialInvoiceFiles) => updateSupplierBatch(batch.id, { commercialInvoiceFiles })}
+                        emptyText="Pending"
+                      />
+                      <FileAttachments
+                        label="Packing list"
+                        owner={{ projectId: supplierPlan.projectId, ownerType: "supplier_plan_batch", ownerId: batch.id, kind: "packing_list" }}
+                        names={batch.packingListFiles}
+                        onNamesChange={(packingListFiles) => updateSupplierBatch(batch.id, { packingListFiles })}
+                        emptyText="Pending"
+                      />
                     </div>
                   ))}
                 </div>

@@ -25,6 +25,8 @@ export type TestD1 = {
   mf: Miniflare;
   d1: D1Database;
   db: ReturnType<typeof drizzle<typeof schema>>;
+  /** Local R2 bucket bound as FILES. */
+  files: FilesBucket;
 };
 
 export async function createTestD1(name: string): Promise<TestD1> {
@@ -32,10 +34,12 @@ export async function createTestD1(name: string): Promise<TestD1> {
     modules: true,
     script: "export default { fetch() { return new Response(null, { status: 204 }); } }",
     d1Databases: { DB: name },
+    r2Buckets: { FILES: `${name}-files` },
   });
   const d1 = (await mf.getD1Database("DB")) as unknown as D1Database;
   for (const { tag } of journal.entries) {
     await runSql(d1, readFileSync(new URL(`${tag}.sql`, migrationsDir), "utf8"));
   }
-  return { mf, d1, db: drizzle(d1, { schema, casing: "snake_case" }) };
+  const files = (await mf.getR2Bucket("FILES")) as unknown as FilesBucket;
+  return { mf, d1, db: drizzle(d1, { schema, casing: "snake_case" }), files };
 }

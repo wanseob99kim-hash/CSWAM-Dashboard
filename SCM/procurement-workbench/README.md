@@ -37,11 +37,11 @@ dev mode and is compiled out of production builds. Without it the app runs in
 
 ## Layout
 
-- `app/` routes: the workbench page and `app/api/workspace/**` (read + sync API)
+- `app/` routes: the workbench page, `app/api/workspace/**` (read + sync) and `app/api/files/**` (attachments)
 - `components/workbench/` one component per workbench section
 - `hooks/` workspace state, derived values, actions, and server sync
 - `lib/` framework-free logic (dates, risk, cashflow, parsers, sync engine)
-- `server/` API validation, D1 read/write service, HTTP handlers
+- `server/` API validation, D1 read/write service, attachment (R2) service, HTTP handlers
 - `db/` Drizzle schema, row mappers, seed builder; `drizzle/` migrations
 - `docs/d1-persistence-design.md` design and decisions for shared storage
 - `tests/` unit, integration (local D1 via Miniflare), and SSR smoke tests

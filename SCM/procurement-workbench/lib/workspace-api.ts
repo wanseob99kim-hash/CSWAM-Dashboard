@@ -9,7 +9,7 @@ export type ApiOutcome<T> =
   | { kind: "rejected"; message: string }
   | { kind: "unavailable"; message: string };
 
-async function call<T>(input: string, init?: RequestInit): Promise<ApiOutcome<T>> {
+export async function callApi<T>(input: string, init?: RequestInit): Promise<ApiOutcome<T>> {
   let response: Response;
   try {
     response = await fetch(input, { ...init, credentials: "same-origin", cache: "no-store" });
@@ -33,11 +33,11 @@ async function call<T>(input: string, init?: RequestInit): Promise<ApiOutcome<T>
 
 export function fetchWorkspace(since: string | null): Promise<ApiOutcome<ServerRead>> {
   const query = since ? `?since=${encodeURIComponent(since)}` : "";
-  return call<ServerRead>(`/api/workspace${query}`, { headers: { accept: "application/json" } });
+  return callApi<ServerRead>(`/api/workspace${query}`, { headers: { accept: "application/json" } });
 }
 
 export function postSync(request: SyncRequest): Promise<ApiOutcome<ServerSyncResult>> {
-  return call<ServerSyncResult>("/api/workspace/sync", {
+  return callApi<ServerSyncResult>("/api/workspace/sync", {
     method: "POST",
     headers: { "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify(request),

@@ -11,3 +11,13 @@ export function getDb() {
 
   return drizzle(env.DB, { schema, casing: "snake_case" });
 }
+
+export function getFilesBucket(): FilesBucket {
+  if (!env.FILES) {
+    throw new Error(
+      "Cloudflare R2 binding `FILES` is unavailable. Set the `r2` field in .openai/hosting.json to `FILES` or let your control plane inject the real binding values before using file storage."
+    );
+  }
+
+  return env.FILES;
+}

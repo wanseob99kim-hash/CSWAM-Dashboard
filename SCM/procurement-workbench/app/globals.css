@@ -3199,3 +3199,58 @@ body {
 .sync-notice span { flex: 1 1 280px; }
 .sync-notice[data-tone="warning"] { --sync-tone: var(--amber); }
 .sync-notice[data-tone="error"] { --sync-tone: var(--red); }
+
+/* Attachments stored in R2 */
+.file-field {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.file-field > label {
+  font-weight: 700;
+}
+
+.file-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.file-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.file-list a {
+  color: var(--blue);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.file-list small {
+  color: var(--muted);
+}
+
+.file-remove {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--red);
+  font-size: 12px;
+  text-decoration: underline;
+}
+
+.file-remove:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.file-message {
+  color: var(--red);
+}
