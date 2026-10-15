@@ -128,3 +128,63 @@ describe("rules", () => {
     expect((await upload(new File(["x"], "one-more.pdf"), owner)).status).toBe(409);
   }, 60_000);
 });
+
+describe("shared MPP files", () => {
+  const mppOwner = { projectId: "workspace", ownerType: "workspace", ownerId: "mpp", kind: "mpp" };
+
+  test("accepts a spreadsheet and lists it for the workspace", async () => {
+    const response = await upload(new File(["PK"], "WK42 MPP 2026_R0.xlsx"), mppOwner);
+    expect(response.status).toBe(201);
+    const listed = await handleListFiles(
+      new Request("http://localhost/api/files?ownerType=workspace&ownerId=mpp", { headers: USER }),
+      db,
+    );
+    expect((await body<StoredFile[]>(listed)).data.map((file) => file.fileName)).toEqual(["WK42 MPP 2026_R0.xlsx"]);
+  });
+
+  test("rejects other document types as a plan", async () => {
+    const response = await upload(new File(["%PDF"], "plan.pdf"), mppOwner);
+    expect(response.status).toBe(400);
+    expect((await body(response)).error).toMatch(/xlsx/);
+  });
+
+  test("keeps plan files off supplier documents and vice versa", async () => {
+    expect((await upload(new File(["x"], "a.xlsx"), { ...mppOwner, kind: "attachment" })).status).toBe(400);
+    expect((await upload(new File(["x"], "a.xlsx"), { ...batchOwner, kind: "mpp" })).status).toBe(400);
+  });
+});
+
+describe("MPP publish token", () => {
+  const TOKEN = "t".repeat(40);
+  const mppOwner = { projectId: "workspace", ownerType: "workspace", ownerId: "mpp", kind: "mpp" };
+  const publish = (owner: Record<string, string>, authorization: string, publishToken: string | undefined = TOKEN) => {
+    const form = new FormData();
+    form.set("file", new File(["PK"], "WK43 MPP 2026_R0.xlsx"));
+    for (const [key, value] of Object.entries(owner)) form.set(key, value);
+    return handleUploadFile(
+      new Request("http://localhost/api/files", { method: "POST", headers: { authorization }, body: form }),
+      db,
+      files,
+      clock,
+      { publishToken },
+    );
+  };
+
+  test("uploads the production plan without a browser sign-in", async () => {
+    const response = await publish(mppOwner, `Bearer ${TOKEN}`);
+    expect(response.status).toBe(201);
+    expect((await body<StoredFile>(response)).data.uploadedBy).toBe("mpp-publisher");
+  });
+
+  test("cannot upload anything else", async () => {
+    expect((await publish(batchOwner, `Bearer ${TOKEN}`)).status).toBe(403);
+  });
+
+  test("rejects a wrong, missing, or unconfigured token", async () => {
+    expect((await publish(mppOwner, `Bearer ${"x".repeat(40)}`)).status).toBe(401);
+    expect((await publish(mppOwner, "")).status).toBe(401);
+    expect((await publish(mppOwner, `Bearer ${TOKEN}`, "")).status).toBe(401);
+    // Short secrets are ignored even if they match.
+    expect((await publish(mppOwner, "Bearer short", "short")).status).toBe(401);
+  });
+});

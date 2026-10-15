@@ -216,7 +216,7 @@ export function useWorkbenchActions(input: WorkbenchActionInput) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "im-delivery-schedule.csv";
+    link.download = "delivery-schedule.csv";
     link.click();
     URL.revokeObjectURL(url);
   }

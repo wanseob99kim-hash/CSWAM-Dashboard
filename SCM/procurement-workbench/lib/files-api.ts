@@ -3,9 +3,9 @@ import { callApi, type ApiOutcome } from "./workspace-api";
 
 export type FileOwnerRef = {
   projectId: string;
-  ownerType: "supplier_plan" | "supplier_plan_batch";
+  ownerType: "supplier_plan" | "supplier_plan_batch" | "workspace";
   ownerId: string;
-  kind: "attachment" | "commercial_invoice" | "packing_list";
+  kind: "attachment" | "commercial_invoice" | "packing_list" | "mpp";
 };
 
 export type AttachmentFile = FileOwnerRef & {

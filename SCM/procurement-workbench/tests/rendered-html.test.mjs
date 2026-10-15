@@ -6,6 +6,7 @@ import { Miniflare } from "miniflare";
 
 const WORKSPACE_TABS = [
   "Overview",
+  "Material Plan",
   "Delivery",
   "Supplier Schedule",
   "MCIP",
@@ -154,5 +155,18 @@ describe("workspace API in the built worker", () => {
 
     assert.equal((await render(`/api/files/${file.id}`, { method: "DELETE", headers: USER })).status, 200);
     assert.equal((await render(`/api/files/${file.id}`, { headers: USER })).status, 404);
+  });
+
+  test("file uploads over 1 MB get past the framework body limit", async () => {
+    // vinext treats multipart POSTs like server actions; next.config.ts raises that limit.
+    const form = new FormData();
+    form.set("file", new File([new Uint8Array(3 * 1024 * 1024)], "WK42 MPP 2026_R0.xlsx"));
+    form.set("projectId", "workspace");
+    form.set("ownerType", "workspace");
+    form.set("ownerId", "mpp");
+    form.set("kind", "mpp");
+    const uploaded = await render("/api/files", { method: "POST", headers: USER, body: form });
+    assert.equal(uploaded.status, 201);
+    assert.equal((await uploaded.json()).data.sizeBytes, 3 * 1024 * 1024);
   });
 });

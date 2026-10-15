@@ -21,5 +21,7 @@ declare module "cloudflare:workers" {
   export const env: {
     DB?: D1Database;
     FILES?: FilesBucket;
+    /** Secret for `npm run mpp:publish`; MPP uploads only. */
+    MPP_PUBLISH_TOKEN?: string;
   };
 }

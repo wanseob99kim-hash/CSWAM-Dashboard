@@ -23,6 +23,22 @@ none, so `VITE_DEV_USER_EMAIL` stands in for a signed-in user. It only applies i
 dev mode and is compiled out of production builds. Without it the app runs in
 "This device only" mode.
 
+## Weekly MPP (Material Plan tab)
+
+Put the new Master Production Plan in `MPP/` (any subfolder, e.g.
+`MPP/2026/WK43 MPP 2026_R0.xlsx`) and publish it:
+
+```bash
+npm run mpp:publish -- --dry-run   # check the file and print the order summary
+npm run mpp:publish                # upload to the local dev server
+```
+
+The newest plan is picked by the year, week, and revision in the file name.
+Files in `MPP/` are git-ignored. To publish to the hosted site, set
+`MPP_PUBLISH_URL` to the site URL and `MPP_PUBLISH_TOKEN` to the secret
+configured on the site (at least 32 characters). That token can only upload
+the production plan.
+
 ## Commands
 
 | Command | Purpose |
@@ -34,6 +50,7 @@ dev mode and is compiled out of production builds. Without it the app runs in
 | `npm run db:generate` | Generate a Drizzle migration after editing `db/schema.ts` |
 | `npm run db:seed-sql` | Regenerate the demo seed migration from `lib/seed-data.ts` |
 | `npm run db:migrate:local` | Apply migrations to the local dev D1 |
+| `npm run mpp:publish` | Publish the newest MPP in `MPP/` (see above) |
 
 ## Layout
 

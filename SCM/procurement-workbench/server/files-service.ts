@@ -31,16 +31,23 @@ export const ALLOWED_FILE_TYPES: Record<string, string> = {
 const OWNER_KINDS = {
   supplier_plan: ["attachment"],
   supplier_plan_batch: ["commercial_invoice", "packing_list"],
+  /** Shared, team-wide documents such as the weekly Master Production Plan. */
+  workspace: ["mpp"],
 } as const;
+
+/** Production plans are read by the app, so only spreadsheets are accepted for them. */
+const KIND_EXTENSIONS: Partial<Record<FileOwner["kind"], string[]>> = {
+  mpp: ["xlsx", "xls"],
+};
 
 const id = z.string().trim().min(1).max(200);
 
 export const fileOwnerSchema = z
   .object({
     projectId: id,
-    ownerType: z.enum(["supplier_plan", "supplier_plan_batch"]),
+    ownerType: z.enum(schema.FILE_OWNER_TYPES),
     ownerId: id,
-    kind: z.enum(["attachment", "commercial_invoice", "packing_list"]),
+    kind: z.enum(schema.FILE_KINDS),
   })
   .refine((owner) => (OWNER_KINDS[owner.ownerType] as readonly string[]).includes(owner.kind), {
     message: "kind does not belong to this owner type",
@@ -124,6 +131,10 @@ export async function uploadFile(
   const contentType = ALLOWED_FILE_TYPES[fileExtension(fileName)];
   if (!contentType) {
     throw new FileRuleError(`File type not allowed. Use one of: ${Object.keys(ALLOWED_FILE_TYPES).join(", ")}.`, 400);
+  }
+  const kindExtensions = KIND_EXTENSIONS[owner.kind];
+  if (kindExtensions && !kindExtensions.includes(fileExtension(fileName))) {
+    throw new FileRuleError(`This document must be one of: ${kindExtensions.join(", ")}.`, 400);
   }
   if (file.size <= 0) throw new FileRuleError("The file is empty.", 400);
   if (file.size > MAX_FILE_BYTES) throw new FileRuleError(`Files can be at most ${MAX_FILE_BYTES / 1024 / 1024} MB.`, 413);

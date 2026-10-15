@@ -256,15 +256,18 @@ export const todoItems = sqliteTable(
   (t) => [index("todo_items_project_idx").on(t.projectId)],
 );
 
+export const FILE_OWNER_TYPES = ["supplier_plan", "supplier_plan_batch", "workspace"] as const;
+export const FILE_KINDS = ["attachment", "commercial_invoice", "packing_list", "mpp"] as const;
+
 /** Metadata for attachments whose bytes live in the R2 bucket bound as FILES. */
 export const files = sqliteTable(
   "files",
   {
     id: text().primaryKey(),
     projectId: text().notNull(),
-    ownerType: text({ enum: ["supplier_plan", "supplier_plan_batch"] }).notNull(),
+    ownerType: text({ enum: FILE_OWNER_TYPES }).notNull(),
     ownerId: text().notNull(),
-    kind: text({ enum: ["attachment", "commercial_invoice", "packing_list"] }).notNull(),
+    kind: text({ enum: FILE_KINDS }).notNull(),
     fileName: text().notNull(),
     contentType: text().notNull(),
     sizeBytes: integer().notNull(),

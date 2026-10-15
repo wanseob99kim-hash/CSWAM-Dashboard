@@ -11,6 +11,7 @@ import {
   removeFile,
   uploadFile,
 } from "./files-service";
+import { FILE_OWNER_TYPES } from "../db/schema";
 import { created, fail, ok, serverError } from "./http";
 import { requestUser } from "./request-user";
 import type { Clock, WorkspaceDb } from "./workspace-service";
@@ -19,7 +20,7 @@ const FILES_ERROR = "Something went wrong with the file. Please try again.";
 /** Multipart overhead allowance on top of the file itself. */
 const MAX_UPLOAD_REQUEST_BYTES = MAX_FILE_BYTES + 64 * 1024;
 const listQuerySchema = z.object({
-  ownerType: z.enum(["supplier_plan", "supplier_plan_batch"]),
+  ownerType: z.enum(FILE_OWNER_TYPES),
   ownerId: z.string().trim().min(1).max(200),
 });
 
@@ -40,8 +41,43 @@ export async function handleListFiles(request: Request, db: WorkspaceDb) {
   }
 }
 
-export async function handleUploadFile(request: Request, db: WorkspaceDb, bucket: FilesBucket, clock: Clock = () => new Date()) {
-  const user = requestUser(request);
+/** Recorded as the uploader when the MPP is published with the publish token. */
+export const MPP_PUBLISHER = "mpp-publisher";
+const MIN_TOKEN_LENGTH = 32;
+
+/** Compares without exiting early, so response time does not reveal how much of the token matched. */
+function sameSecret(given: string, expected: string): boolean {
+  const left = new TextEncoder().encode(given);
+  const right = new TextEncoder().encode(expected);
+  let difference = left.length ^ right.length;
+  for (let index = 0; index < right.length; index += 1) difference |= (left[index] ?? 0) ^ right[index];
+  return difference === 0;
+}
+
+function hasPublishToken(request: Request, publishToken: string | undefined): boolean {
+  if (!publishToken || publishToken.length < MIN_TOKEN_LENGTH) return false;
+  const match = /^Bearer\s+(.+)$/i.exec(request.headers.get("authorization") ?? "");
+  return Boolean(match && sameSecret(match[1].trim(), publishToken));
+}
+
+export type UploadOptions = {
+  /**
+   * MPP_PUBLISH_TOKEN. Lets `npm run mpp:publish` upload the shared production plan
+   * without a browser sign-in. It is accepted for that one target only.
+   */
+  publishToken?: string;
+};
+
+export async function handleUploadFile(
+  request: Request,
+  db: WorkspaceDb,
+  bucket: FilesBucket,
+  clock: Clock = () => new Date(),
+  options: UploadOptions = {},
+) {
+  const signedIn = requestUser(request);
+  const publisher = !signedIn && hasPublishToken(request, options.publishToken);
+  const user = signedIn ?? (publisher ? { email: MPP_PUBLISHER } : null);
   if (!user) return fail(401, "Sign in to upload attachments.");
   if (Number(request.headers.get("content-length") ?? 0) > MAX_UPLOAD_REQUEST_BYTES) {
     return fail(413, `Files can be at most ${MAX_FILE_BYTES / 1024 / 1024} MB.`);
@@ -64,6 +100,9 @@ export async function handleUploadFile(request: Request, db: WorkspaceDb, bucket
   if (!owner.success) {
     const issue = owner.error.issues[0];
     return fail(400, `Invalid attachment target: ${issue.path.join(".") || "request"} ${issue.message}`);
+  }
+  if (publisher && (owner.data.ownerType !== "workspace" || owner.data.kind !== "mpp")) {
+    return fail(403, "The publish token can only upload the production plan.");
   }
 
   try {

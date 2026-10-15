@@ -183,7 +183,7 @@ export type PurchasePoLine = {
   deliveryDate: string;
 };
 
-export type WorkspaceTab = "overview" | "delivery" | "supplier" | "logistics" | "bom" | "cashflow" | "ncr" | "ecn" | "mcip";
+export type WorkspaceTab = "overview" | "delivery" | "supplier" | "logistics" | "bom" | "cashflow" | "ncr" | "ecn" | "mcip" | "material";
 
 export type CashflowForecast = {
   id: string;

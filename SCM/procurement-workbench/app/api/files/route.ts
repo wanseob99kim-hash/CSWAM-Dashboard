@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { getDb, getFilesBucket } from "@/db";
 import { handleListFiles, handleUploadFile } from "@/server/files-handlers";
 
@@ -8,5 +9,5 @@ export function GET(request: Request) {
 }
 
 export function POST(request: Request) {
-  return handleUploadFile(request, getDb(), getFilesBucket());
+  return handleUploadFile(request, getDb(), getFilesBucket(), undefined, { publishToken: env.MPP_PUBLISH_TOKEN });
 }

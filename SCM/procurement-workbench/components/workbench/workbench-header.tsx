@@ -16,7 +16,7 @@ export function WorkbenchHeader({ wb }: WorkbenchHeaderProps) {
         <b />
       </div>
       <div>
-        <p className="eyebrow">Internal Mounting Delivery Schedule</p>
+        <p className="eyebrow">Delivery Schedule</p>
         <div className="header-title-row">
           <h1>{activeProject.name}</h1>
           <span className="company-chip">CSWind America</span>
@@ -24,6 +24,7 @@ export function WorkbenchHeader({ wb }: WorkbenchHeaderProps) {
         </div>
         <nav className="workspace-tabs" aria-label="Workbench sections">
           <button className={activeWorkspace === "overview" ? "workspace-tab active" : "workspace-tab"} onClick={() => setActiveWorkspace("overview")}>Overview</button>
+          <button className={activeWorkspace === "material" ? "workspace-tab active" : "workspace-tab"} onClick={() => setActiveWorkspace("material")}>Material Plan</button>
           <button className={activeWorkspace === "delivery" ? "workspace-tab active" : "workspace-tab"} onClick={() => setActiveWorkspace("delivery")}>Delivery</button>
           <button className={activeWorkspace === "supplier" ? "workspace-tab active" : "workspace-tab"} onClick={() => setActiveWorkspace("supplier")}>Supplier Schedule</button>
           <button className={activeWorkspace === "mcip" ? "workspace-tab active" : "workspace-tab"} onClick={() => setActiveWorkspace("mcip")}>MCIP</button>

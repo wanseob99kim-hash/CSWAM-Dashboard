@@ -8,6 +8,7 @@ import { DeliveryEditor } from "@/components/workbench/delivery-editor";
 import { DeliveryPortfolio } from "@/components/workbench/delivery-portfolio";
 import { SupplierSchedule } from "@/components/workbench/supplier-schedule";
 import { OverviewPanel } from "@/components/workbench/overview-panel";
+import { MaterialPlanPanel } from "@/components/workbench/material-plan-panel";
 import { McipPanel } from "@/components/workbench/mcip-panel";
 import { CashflowPanel } from "@/components/workbench/cashflow-panel";
 import { LogisticsPanel } from "@/components/workbench/logistics-panel";
@@ -31,6 +32,7 @@ export default function Home() {
         <DeliveryPortfolio wb={wb} />
         <SupplierSchedule wb={wb} />
         <OverviewPanel wb={wb} />
+        <MaterialPlanPanel wb={wb} />
         <McipPanel wb={wb} />
         <CashflowPanel wb={wb} />
         <LogisticsPanel wb={wb} />

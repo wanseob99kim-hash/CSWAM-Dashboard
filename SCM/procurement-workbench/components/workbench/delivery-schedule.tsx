@@ -114,7 +114,7 @@ export function DeliverySchedule({ wb }: DeliveryScheduleProps) {
             </select>
           </div>
         </div>
-        <div className="schedule-table" role="table" aria-label="IM delivery schedule detail">
+        <div className="schedule-table" role="table" aria-label="Delivery schedule detail">
           <div className="schedule-row schedule-head" role="row">
             <span>Category</span>
             <span>PO / Batch</span>
