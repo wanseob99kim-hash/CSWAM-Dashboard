@@ -8,7 +8,7 @@ type DeliveryPortfolioProps = {
 };
 
 export function DeliveryPortfolio({ wb }: DeliveryPortfolioProps) {
-  const { projectList, bomItems, deliveryProjectFilter, setDeliveryProjectFilter, deliveryManufacturerFilter, setDeliveryManufacturerFilter, deliveryCategoryFilter, setDeliveryCategoryFilter, deliveryPoFilter, setDeliveryPoFilter, deliveryStatusFilter, setDeliveryStatusFilter, deliverySearch, setDeliverySearch, deliverySort, setDeliverySort, activeWorkspace, rowsWithRisk, deliveryManufacturers, deliveryCategories, deliveryPos, totalDeliveryRows, totalDeliveryRiskCount, totalDeliveryOpenCount, totalDeliveryArrivedCount, deleteDelivery } = wb;
+  const { bomItems, deliveryManufacturerFilter, setDeliveryManufacturerFilter, deliveryCategoryFilter, setDeliveryCategoryFilter, deliveryPoFilter, setDeliveryPoFilter, deliveryStatusFilter, setDeliveryStatusFilter, deliverySearch, setDeliverySearch, deliverySort, setDeliverySort, activeWorkspace, rowsWithRisk, deliveryManufacturers, deliveryCategories, deliveryPos, totalDeliveryRows, totalDeliveryRiskCount, totalDeliveryOpenCount, totalDeliveryArrivedCount, deleteDelivery } = wb;
 
   return (
     <section className="portfolio-delivery-panel" hidden={activeWorkspace !== "delivery"}>
@@ -17,12 +17,6 @@ export function DeliveryPortfolio({ wb }: DeliveryPortfolioProps) {
           <h2>Total Delivery Table</h2>
         </div>
         <div className="filters smart-filters">
-          <select aria-label="Delivery project filter" value={deliveryProjectFilter} onChange={(event) => setDeliveryProjectFilter(event.target.value)}>
-            <option value="All">All projects</option>
-            {projectList.map((project) => (
-              <option key={project.id} value={project.id}>{project.name}</option>
-            ))}
-          </select>
           <select aria-label="Delivery manufacturer filter" value={deliveryManufacturerFilter} onChange={(event) => setDeliveryManufacturerFilter(event.target.value)}>
             {deliveryManufacturers.map((manufacturer) => (
               <option key={manufacturer} value={manufacturer}>{manufacturer === "All" ? "All manufacturers" : manufacturer}</option>

@@ -1,45 +1,28 @@
-import { SyncStatusChip } from "@/components/workbench/sync-status";
+import { navItem } from "@/components/workbench/navigation";
 import type { Workbench } from "@/hooks/useWorkbench";
 
 type WorkbenchHeaderProps = {
   wb: Workbench;
 };
 
+/** Page title for the current section, the project scope it shows, and the section's actions. */
 export function WorkbenchHeader({ wb }: WorkbenchHeaderProps) {
-  const { projectList, activeWorkspace, setActiveWorkspace, activeProject, startAddProject, startEditProject, startAddDelivery, deleteProject, exportCsv, importCsv, importNcrCsv } = wb;
+  const { projectList, activeWorkspace, activeProject, projectScope, startEditProject, startAddDelivery, deleteProject, exportCsv, importCsv, importNcrCsv } =
+    wb;
+  const item = navItem(activeWorkspace);
+  const allProjects = projectScope === "all";
+  const scopeLabel = allProjects ? `All ${projectList.length} projects` : `${activeProject.code} · ${activeProject.name}`;
 
   return (
-    <header className="im-header">
-      <div className="tower-accent" aria-hidden="true">
-        <span />
-        <i />
-        <b />
-      </div>
+    <header className="page-header">
       <div>
-        <p className="eyebrow">Delivery Schedule</p>
-        <div className="header-title-row">
-          <h1>{activeProject.name}</h1>
-          <span className="company-chip">CSWind America</span>
-          <SyncStatusChip wb={wb} />
-        </div>
-        <nav className="workspace-tabs" aria-label="Workbench sections">
-          <button className={activeWorkspace === "overview" ? "workspace-tab active" : "workspace-tab"} onClick={() => setActiveWorkspace("overview")}>Overview</button>
-          <button className={activeWorkspace === "material" ? "workspace-tab active" : "workspace-tab"} onClick={() => setActiveWorkspace("material")}>Material Plan</button>
-          <button className={activeWorkspace === "delivery" ? "workspace-tab active" : "workspace-tab"} onClick={() => setActiveWorkspace("delivery")}>Delivery</button>
-          <button className={activeWorkspace === "supplier" ? "workspace-tab active" : "workspace-tab"} onClick={() => setActiveWorkspace("supplier")}>Supplier Schedule</button>
-          <button className={activeWorkspace === "mcip" ? "workspace-tab active" : "workspace-tab"} onClick={() => setActiveWorkspace("mcip")}>MCIP</button>
-          <button className={activeWorkspace === "cashflow" ? "workspace-tab active" : "workspace-tab"} onClick={() => setActiveWorkspace("cashflow")}>Cashflow</button>
-          <button className={activeWorkspace === "logistics" ? "workspace-tab active" : "workspace-tab"} onClick={() => setActiveWorkspace("logistics")}>Logistics</button>
-          <button className={activeWorkspace === "bom" ? "workspace-tab active" : "workspace-tab"} onClick={() => setActiveWorkspace("bom")}>BOM</button>
-          <button className={activeWorkspace === "ncr" ? "workspace-tab active" : "workspace-tab"} onClick={() => setActiveWorkspace("ncr")}>NCR</button>
-          <button className={activeWorkspace === "ecn" ? "workspace-tab active" : "workspace-tab"} onClick={() => setActiveWorkspace("ecn")}>ECN</button>
-        </nav>
-        <span>{activeProject.code} · {activeProject.phase} · {activeProject.plant}</span>
+        <p className="eyebrow">{scopeLabel}</p>
+        <h1>{item.label}</h1>
+        <p className="page-description">{item.description}</p>
       </div>
       <div className="header-actions">
-        {activeWorkspace === "overview" ? (
+        {activeWorkspace === "overview" && !allProjects ? (
           <>
-            <button className="secondary-action" onClick={startAddProject}>Add project</button>
             <button className="secondary-action" onClick={() => startEditProject(activeProject)}>Edit project</button>
             <button className="danger-action" disabled={projectList.length <= 1} onClick={() => deleteProject(activeProject.id)}>Delete project</button>
           </>
@@ -51,7 +34,14 @@ export function WorkbenchHeader({ wb }: WorkbenchHeaderProps) {
               Import delivery
               <input accept=".csv,text/csv" aria-label="Import delivery CSV" onChange={importCsv} type="file" />
             </label>
-            <button className="primary-action" onClick={startAddDelivery}>Add delivery</button>
+            <button
+              className="primary-action"
+              disabled={allProjects}
+              title={allProjects ? "Choose a project first" : undefined}
+              onClick={startAddDelivery}
+            >
+              Add delivery
+            </button>
           </>
         ) : null}
         {activeWorkspace === "ncr" ? (

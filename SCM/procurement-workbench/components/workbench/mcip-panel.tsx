@@ -7,7 +7,7 @@ type McipPanelProps = {
 };
 
 export function McipPanel({ wb }: McipPanelProps) {
-  const { projectList, mcipProjectFilter, setMcipProjectFilter, mcipStatusFilter, setMcipStatusFilter, mcipSort, setMcipSort, activeWorkspace, mcipVisibleRows, mcipTotals, mcipTotalPerTowerDap, mcipTotalPerTowerDdp, mcipTotalPercent } = wb;
+  const { mcipStatusFilter, setMcipStatusFilter, mcipSort, setMcipSort, activeWorkspace, mcipVisibleRows, mcipTotals, mcipTotalPerTowerDap, mcipTotalPerTowerDdp, mcipTotalPercent } = wb;
 
   return (
     <>
@@ -20,12 +20,6 @@ export function McipPanel({ wb }: McipPanelProps) {
             <h2>Portfolio Budget Forecast</h2>
           </div>
           <div className="filters smart-filters">
-            <select aria-label="MCIP project filter" value={mcipProjectFilter} onChange={(event) => setMcipProjectFilter(event.target.value)}>
-              <option value="All">All projects</option>
-              {projectList.map((project) => (
-                <option key={project.id} value={project.id}>{project.name}</option>
-              ))}
-            </select>
             <select aria-label="MCIP status filter" value={mcipStatusFilter} onChange={(event) => setMcipStatusFilter(event.target.value)}>
               <option value="All">All status</option>
               {projectStatuses.map((status) => (

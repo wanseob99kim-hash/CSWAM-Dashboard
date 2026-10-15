@@ -36,8 +36,8 @@ async function loadLatestPlan(): Promise<LoadState> {
 }
 
 /**
- * The latest shared MPP and the purchasing plan derived from it. Loads only once
- * the Material Plan section is opened, since the workbook is large.
+ * The latest shared MPP and the purchasing plan derived from it. Loaded once the
+ * workspace is ready; This Week and the navigation badges depend on it.
  */
 export function useMaterialPlan(active: boolean, projects: Project[]) {
   const [state, setState] = useState<LoadState>({ kind: "idle" });
@@ -66,11 +66,14 @@ export function useMaterialPlan(active: boolean, projects: Project[]) {
   const plan = state.kind === "ready" ? state.plan : null;
   const derived = useMemo(() => {
     if (!plan) return null;
+    const reconciliation = reconcileProjects(projects, plan, currentWeek);
+    const projectIdByRow = new Map(reconciliation.matches.map((match) => [match.mpp.row, match.project.id]));
     return {
       rows: buildOrderPlan(plan, settings, currentWeek),
+      projectIdByRow,
       issues: findPlanIssues(plan),
       offsets: measureArrivalOffsets(plan),
-      reconciliation: reconcileProjects(projects, plan, currentWeek),
+      reconciliation,
     };
   }, [plan, settings, currentWeek, projects]);
 

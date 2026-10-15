@@ -4,17 +4,18 @@ import { after, before, describe } from "node:test";
 import test from "node:test";
 import { Miniflare } from "miniflare";
 
-const WORKSPACE_TABS = [
-  "Overview",
+const NAV_SECTIONS = [
+  "This Week",
   "Material Plan",
-  "Delivery",
   "Supplier Schedule",
-  "MCIP",
-  "Cashflow",
-  "Logistics",
   "BOM",
+  "MCIP Budget",
+  "Delivery",
+  "Logistics",
   "NCR",
   "ECN",
+  "Cashflow",
+  "Project Overview",
 ];
 
 async function render(path = "/", init = {}) {
@@ -48,32 +49,35 @@ test("server-renders the procurement workbench shell", async () => {
   assert.match(html, /<title>CSWind America Procurement Workbench<\/title>/);
   assert.match(html, /<html lang="en"/);
   assert.match(html, /CSWind America/);
-  assert.match(html, /Wind tower procurement/);
+  assert.match(html, /Supply chain workbench/);
   assert.match(html, /<span class="sync-chip" data-state="connecting" role="status"[^>]*>.*Connecting…<\/span>/);
 });
 
-test("renders every workspace tab", async () => {
+test("lists every section in the left menu, grouped by workflow", async () => {
   const html = await (await render()).text();
-  const tabs = [...html.matchAll(/<button class="workspace-tab[^"]*">([^<]+)<\/button>/g)].map(
-    (match) => match[1],
-  );
-  assert.deepEqual(tabs, WORKSPACE_TABS);
+  const sections = [...html.matchAll(/<button type="button" class="app-nav-item"[^>]*><span>([^<]+)<\/span>/g)].map((match) => match[1]);
+  assert.deepEqual(sections, NAV_SECTIONS);
+  const groups = [...html.matchAll(/<span class="app-nav-group-label">([^<]+)<\/span>/g)].map((match) => match[1]);
+  assert.deepEqual(groups, ["Today", "Plan", "Buy", "Receive", "Control", "Project"]);
 });
 
-test("opens on the default Panther Grove project with seeded projects in the sidebar", async () => {
+test("opens on This Week for all projects, with every project in the selector", async () => {
   const html = await (await render()).text();
-  assert.match(html, /<h1>Panther Grove Phase 2 - 5T<\/h1>/);
-
-  const projects = [...html.matchAll(/<button class="project-button[^"]*"><span><strong>([^<]+)<\/strong>/g)];
-  assert.ok(projects.length >= 10, `expected seeded projects, got ${projects.length}`);
-  assert.match(html, /<button class="project-button active"><span><strong>Panther Grove Phase 2 - 5T<\/strong>/);
+  assert.match(html, /<h1>This Week<\/h1>/);
+  assert.match(html, /<button type="button" class="app-nav-item" aria-current="page"><span>This Week<\/span>/);
+  // React separates text and values with <!-- --> markers.
+  assert.match(html, /<option value="all" selected="">All projects \((?:<!-- -->)?12(?:<!-- -->)?\)<\/option>/);
+  const options = [...html.matchAll(/<option value="project-[^"]+">/g)];
+  assert.equal(options.length, 12);
 });
 
-test("shows only the overview panel on first render", async () => {
+test("shows This Week and hides other sections on first render", async () => {
   const html = await (await render()).text();
-  assert.match(html, /<section class="overview-panel">/);
+  assert.match(html, /<section class="this-week">/);
   assert.match(html, /<section class="cashflow-panel" hidden="">/);
   assert.match(html, /<section class="ncr-panel ncr-total-panel" hidden="">/);
+  // One-project sections are held back until a project is chosen.
+  assert.match(html, /<div class="scope-gate" hidden="">/);
 });
 
 describe("workspace API in the built worker", () => {

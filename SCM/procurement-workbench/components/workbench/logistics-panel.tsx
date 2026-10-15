@@ -7,7 +7,7 @@ type LogisticsPanelProps = {
 };
 
 export function LogisticsPanel({ wb }: LogisticsPanelProps) {
-  const { projectList, reportProjectId, setReportProjectId, reportWindow, setReportWindow, activeWorkspace, freightTariffStats, oceanLeadStats } = wb;
+  const { reportWindow, setReportWindow, activeWorkspace, freightTariffStats, oceanLeadStats } = wb;
 
   return (
     <>
@@ -20,12 +20,6 @@ export function LogisticsPanel({ wb }: LogisticsPanelProps) {
             <h2>Logistics</h2>
           </div>
           <div className="filters">
-            <select aria-label="Report project" value={reportProjectId} onChange={(event) => setReportProjectId(event.target.value)}>
-              <option value="All">All projects</option>
-              {projectList.map((project) => (
-                <option key={project.id} value={project.id}>{project.name}</option>
-              ))}
-            </select>
             <select aria-label="Report time window" value={reportWindow} onChange={(event) => setReportWindow(event.target.value)}>
               <option value="All">All time</option>
               <option value="30">Next 30 days</option>

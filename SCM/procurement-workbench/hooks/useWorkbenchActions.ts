@@ -9,7 +9,7 @@ import { getProjectStatus } from "@/lib/format";
 import { createId } from "@/lib/ids";
 import { parsePoDetailWorkbook } from "@/lib/po-import";
 import { buildSupplierEmailSubject, buildSupplierEmailTemplate, createSupplierMaterialAllocations, createSupplierSchedulePlan, getDefaultMaterialAllocationQty, getMaterialAllocationQty } from "@/lib/supplier-plan";
-import type { Delivery, DeliveryEntryMode, Project, SupplierBatchStatus, SupplierScheduleBatch, SupplierSchedulePlan } from "@/lib/types";
+import type { Delivery, DeliveryEntryMode, Project, ProjectScope, SupplierBatchStatus, SupplierScheduleBatch, SupplierSchedulePlan } from "@/lib/types";
 import type { WorkbenchDerived } from "./useWorkbenchDerived";
 import type { WorkspaceState } from "./useWorkspaceState";
 
@@ -27,7 +27,31 @@ export function useWorkbenchActions(input: WorkbenchActionInput) {
     bulkDeliveryBatches, setBulkDeliveryBatches, supplierNcrDraft, setSupplierNcrDraft, internalNcrDraft,
     setInternalNcrDraft, ecnDraft, setEcnDraft, todoDraft, setTodoDraft, activeProject, activeSupplierPo,
     supplierPoRows, supplierPoLines, supplierPlan, supplierEmailText,
+    projectScope, setProjectScope, setDeliveryProjectFilter, setReportProjectId, setCashflowProjectId,
+    setMcipProjectFilter, setNcrProjectFilter, setEcnProjectFilter,
   } = input;
+
+  /** Sets the project for every section: "all" for the whole portfolio, or one project. */
+  function selectProject(scope: ProjectScope) {
+    const filter = scope === "all" ? "All" : scope;
+    setProjectScope(scope);
+    setDeliveryProjectFilter(filter);
+    setReportProjectId(filter);
+    setCashflowProjectId(filter);
+    setMcipProjectFilter(filter);
+    setNcrProjectFilter(filter);
+    setEcnProjectFilter(filter);
+    const project = scope === "all" ? null : projectList.find((item) => item.id === scope);
+    if (!project) return;
+    setActiveProjectId(project.id);
+    setSupplierNcrDraft(createSupplierNcrDraft(project));
+    setInternalNcrDraft(createInternalNcrDraft(project.id));
+    setEcnDraft(createEcnDraft(project.id));
+    setTodoDraft(createTodoDraft(project.id));
+    setSupplierPoFilter("");
+    setCategory("All");
+    setQuery("");
+  }
 
   function saveProject() {
     if (!projectDraft.name.trim()) return;
@@ -46,6 +70,7 @@ export function useWorkbenchActions(input: WorkbenchActionInput) {
       setProjectList((current) => [...current, nextProject]);
     }
     setActiveProjectId(nextProject.id);
+    setProjectScope(nextProject.id);
     setProjectDraft(createProjectDraft());
     setSupplierNcrDraft(createSupplierNcrDraft(nextProject));
     setInternalNcrDraft(createInternalNcrDraft(nextProject.id));
@@ -193,6 +218,7 @@ export function useWorkbenchActions(input: WorkbenchActionInput) {
     setEcnRecords((current) => current.filter((item) => item.projectId !== id));
     setTodoItems((current) => current.filter((item) => item.projectId !== id));
     setProjectList(nextProjects);
+    if (projectScope === id) selectProject("all");
     if (activeProjectId === id) {
       setActiveProjectId(nextProjects[0].id);
       setSupplierNcrDraft(createSupplierNcrDraft(nextProjects[0]));
@@ -539,7 +565,7 @@ export function useWorkbenchActions(input: WorkbenchActionInput) {
   }
 
   return {
-    saveProject, startAddProject, startEditProject, saveDelivery, saveBulkDeliveries, startAddDelivery,
+    selectProject, saveProject, startAddProject, startEditProject, saveDelivery, saveBulkDeliveries, startAddDelivery,
     changeDeliveryEntryMode, startEditDelivery, deleteDelivery, deleteProject, exportCsv, importCsv,
     importBomFile, importNcrCsv, clearProjectBom, addTodoItem, toggleTodoItem, deleteTodoItem,
     saveSupplierNcr, deleteSupplierNcr, saveInternalNcr, deleteInternalNcr, saveEcn, deleteEcn,

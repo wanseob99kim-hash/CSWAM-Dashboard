@@ -40,7 +40,7 @@ function weeksLabel(weeks: number): string {
 }
 
 export function MaterialPlanPanel({ wb }: MaterialPlanPanelProps) {
-  const { activeWorkspace, materialPlan, deliveryList } = wb;
+  const { activeWorkspace, materialPlan, deliveryList, projectScope, activeProject } = wb;
   const { state, currentWeek, settings, derived } = materialPlan;
   const [filter, setFilter] = useState<StatusFilter>("action");
   const [customer, setCustomer] = useState("All");
@@ -52,9 +52,12 @@ export function MaterialPlanPanel({ wb }: MaterialPlanPanelProps) {
   const rows = useMemo(
     () =>
       (derived?.rows ?? []).filter(
-        (row) => FILTERS[filter].statuses.includes(row.status) && (customer === "All" || row.project.customer === customer),
+        (row) =>
+          FILTERS[filter].statuses.includes(row.status) &&
+          (customer === "All" || row.project.customer === customer) &&
+          (projectScope === "all" || derived?.projectIdByRow.get(row.project.row) === projectScope),
       ),
-    [derived, filter, customer],
+    [derived, filter, customer, projectScope],
   );
   const customers = useMemo(() => [...new Set((derived?.rows ?? []).map((row) => row.project.customer))].sort(), [derived]);
   const count = (status: OrderStatus) => (derived?.rows ?? []).filter((row) => row.status === status).length;
@@ -168,7 +171,13 @@ export function MaterialPlanPanel({ wb }: MaterialPlanPanelProps) {
                   ))}
                 </tbody>
               </table>
-              {!rows.length ? <p className="empty-state table-empty">Nothing to show for this filter.</p> : null}
+              {!rows.length ? (
+                <p className="empty-state table-empty">
+                  {projectScope !== "all" && ![...(derived.projectIdByRow.values())].includes(projectScope)
+                    ? `${activeProject.name} is not in the production plan. Choose All projects to see the whole plan.`
+                    : "Nothing to show for this filter."}
+                </p>
+              ) : null}
             </div>
 
             <MaterialPlanReview wb={wb} />

@@ -8,7 +8,7 @@ type CashflowPanelProps = {
 };
 
 export function CashflowPanel({ wb }: CashflowPanelProps) {
-  const { projectList, cashflowProjectId, setCashflowProjectId, activeWorkspace, cashflowForecastRows, cashflowMonthKeys, cashflowProjectSeries, cashflowTotalValues, cashflowMonthlyRows, cashflowTotalAmount, cashflowNextPayMonth, cashflowChartWidth, cashflowChartHeight, cashflowMaxValue, cashflowPalette } = wb;
+  const { activeWorkspace, cashflowForecastRows, cashflowMonthKeys, cashflowProjectSeries, cashflowTotalValues, cashflowMonthlyRows, cashflowTotalAmount, cashflowNextPayMonth, cashflowChartWidth, cashflowChartHeight, cashflowMaxValue, cashflowPalette } = wb;
 
   return (
     <>
@@ -21,12 +21,6 @@ export function CashflowPanel({ wb }: CashflowPanelProps) {
             <h2>Monthly Payment Forecast</h2>
           </div>
           <div className="filters">
-            <select aria-label="Cashflow project" value={cashflowProjectId} onChange={(event) => setCashflowProjectId(event.target.value)}>
-              <option value="All">All projects</option>
-              {projectList.map((project) => (
-                <option key={project.id} value={project.id}>{project.name}</option>
-              ))}
-            </select>
           </div>
         </div>
 

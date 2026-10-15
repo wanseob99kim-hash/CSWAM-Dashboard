@@ -3,7 +3,7 @@ import { createBulkDeliveryBatches, createDeliveryDraft, createEcnDraft, createI
 import { defaultActiveProjectId, defaultBomItems, defaultDeliveries, defaultInternalNcrs, defaultProjects, defaultSupplierNcrs, defaultTodoItems } from "@/lib/seed-data";
 import type { WorkspaceSnapshot } from "@/lib/storage";
 import { useWorkspaceSync } from "./useWorkspaceSync";
-import type { BomItem, BulkDeliveryBatch, Delivery, DeliveryEntryMode, EcnRecord, InternalNcr, Project, PurchasePoLine, SupplierNcr, SupplierSchedulePlan, TodoItem, WorkspaceTab } from "@/lib/types";
+import type { BomItem, BulkDeliveryBatch, Delivery, DeliveryEntryMode, EcnRecord, ProjectScope, InternalNcr, Project, PurchasePoLine, SupplierNcr, SupplierSchedulePlan, TodoItem, WorkspaceTab } from "@/lib/types";
 
 export type WorkspaceState = ReturnType<typeof useWorkspaceState>;
 
@@ -82,7 +82,9 @@ export function useWorkspaceState() {
 
   const [bomSearch, setBomSearch] = useState("");
 
-  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceTab>("overview");
+  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceTab>("today");
+
+  const [projectScope, setProjectScope] = useState<ProjectScope>("all");
 
   const [showProjectForm, setShowProjectForm] = useState(false);
 
@@ -168,7 +170,7 @@ export function useWorkspaceState() {
     ecnProjectFilter, setEcnProjectFilter, ecnStatusFilter, setEcnStatusFilter, ecnImpactFilter,
     setEcnImpactFilter, ecnSort, setEcnSort, bomManufacturerFilter, setBomManufacturerFilter,
     bomCategoryFilter, setBomCategoryFilter, bomSearch, setBomSearch, activeWorkspace,
-    setActiveWorkspace, hydrated, syncStatus, saveNow, importLocalData, dismissImport,
+    setActiveWorkspace, projectScope, setProjectScope, hydrated, syncStatus, saveNow, importLocalData, dismissImport,
     dismissConflicts, discardLocalChanges, showProjectForm, setShowProjectForm, showDeliveryForm,
     setShowDeliveryForm, deliveryEntryMode, setDeliveryEntryMode, editingDeliveryId,
     setEditingDeliveryId, editingProjectId, setEditingProjectId, projectDraft, setProjectDraft,

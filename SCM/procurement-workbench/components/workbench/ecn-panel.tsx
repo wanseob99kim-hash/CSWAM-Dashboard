@@ -7,7 +7,7 @@ type EcnPanelProps = {
 };
 
 export function EcnPanel({ wb }: EcnPanelProps) {
-  const { projectList, ecnProjectFilter, setEcnProjectFilter, ecnStatusFilter, setEcnStatusFilter, ecnImpactFilter, setEcnImpactFilter, ecnSort, setEcnSort, activeWorkspace, ecnDraft, setEcnDraft, ecnVisibleRows, saveEcn, deleteEcn } = wb;
+  const { ecnStatusFilter, setEcnStatusFilter, ecnImpactFilter, setEcnImpactFilter, ecnSort, setEcnSort, activeWorkspace, ecnDraft, setEcnDraft, ecnVisibleRows, saveEcn, deleteEcn, projectScope } = wb;
 
   return (
     <>
@@ -20,12 +20,6 @@ export function EcnPanel({ wb }: EcnPanelProps) {
             <h2>ECN Record</h2>
           </div>
           <div className="filters smart-filters">
-            <select aria-label="ECN project filter" value={ecnProjectFilter} onChange={(event) => setEcnProjectFilter(event.target.value)}>
-              <option value="All">All projects</option>
-              {projectList.map((project) => (
-                <option key={project.id} value={project.id}>{project.name}</option>
-              ))}
-            </select>
             <select aria-label="ECN status filter" value={ecnStatusFilter} onChange={(event) => setEcnStatusFilter(event.target.value)}>
               <option value="All">All status</option>
               <option>Open</option>
@@ -50,7 +44,8 @@ export function EcnPanel({ wb }: EcnPanelProps) {
             </select>
           </div>
         </div>
-        <div className="form-grid ecn-form">
+        {projectScope === "all" ? <p className="scope-hint">Choose a project at the top to add an ECN.</p> : null}
+        <div className="form-grid ecn-form" hidden={projectScope === "all"}>
           <label>
             ECN number
             <input value={ecnDraft.ecnNumber} onChange={(event) => setEcnDraft({ ...ecnDraft, ecnNumber: event.target.value })} />

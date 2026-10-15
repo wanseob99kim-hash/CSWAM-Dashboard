@@ -7,7 +7,7 @@ type NcrPanelProps = {
 };
 
 export function NcrPanel({ wb }: NcrPanelProps) {
-  const { projectList, ncrProjectFilter, setNcrProjectFilter, ncrTypeFilter, setNcrTypeFilter, ncrStatusFilter, setNcrStatusFilter, ncrSort, setNcrSort, activeWorkspace, supplierNcrDraft, setSupplierNcrDraft, internalNcrDraft, setInternalNcrDraft, activeProject, projectSupplierNcrs, projectInternalNcrs, ncrReportSummary, ncrVisibleRows, importNcrCsv, saveSupplierNcr, deleteSupplierNcr, saveInternalNcr, deleteInternalNcr } = wb;
+  const { ncrTypeFilter, setNcrTypeFilter, ncrStatusFilter, setNcrStatusFilter, ncrSort, setNcrSort, activeWorkspace, supplierNcrDraft, setSupplierNcrDraft, internalNcrDraft, setInternalNcrDraft, activeProject, projectSupplierNcrs, projectInternalNcrs, ncrReportSummary, ncrVisibleRows, importNcrCsv, saveSupplierNcr, deleteSupplierNcr, saveInternalNcr, deleteInternalNcr, projectScope } = wb;
 
   return (
     <>
@@ -20,12 +20,6 @@ export function NcrPanel({ wb }: NcrPanelProps) {
             <h2>Total NCR Preview</h2>
           </div>
           <div className="filters smart-filters">
-            <select aria-label="NCR project filter" value={ncrProjectFilter} onChange={(event) => setNcrProjectFilter(event.target.value)}>
-              <option value="All">All projects</option>
-              {projectList.map((project) => (
-                <option key={project.id} value={project.id}>{project.name}</option>
-              ))}
-            </select>
             <select aria-label="NCR type filter" value={ncrTypeFilter} onChange={(event) => setNcrTypeFilter(event.target.value)}>
               <option value="All">All types</option>
               <option>Supplier</option>
@@ -78,6 +72,9 @@ export function NcrPanel({ wb }: NcrPanelProps) {
           )}
         </div>
       </section>
+      <p className="scope-hint" hidden={activeWorkspace !== "ncr" || projectScope !== "all"}>
+        Choose a project at the top to log or update supplier and internal NCRs.
+      </p>
       <section className="ncr-panel ncr-report-panel" hidden={activeWorkspace !== "ncr"}>
         <div className="panel-header">
           <div>
@@ -112,7 +109,7 @@ export function NcrPanel({ wb }: NcrPanelProps) {
           )}
         </div>
       </section>
-      <section className="ncr-panel" hidden={activeWorkspace !== "ncr"}>
+      <section className="ncr-panel" hidden={activeWorkspace !== "ncr" || projectScope === "all"}>
         <div className="panel-header">
           <div>
             <h2>Supplier NCR</h2>
@@ -181,7 +178,7 @@ export function NcrPanel({ wb }: NcrPanelProps) {
           )}
         </div>
       </section>
-      <section className="ncr-panel" hidden={activeWorkspace !== "ncr"}>
+      <section className="ncr-panel" hidden={activeWorkspace !== "ncr" || projectScope === "all"}>
         <div className="panel-header">
           <div>
             <h2>Internal NCR</h2>
