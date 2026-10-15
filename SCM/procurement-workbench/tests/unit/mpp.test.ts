@@ -3,6 +3,7 @@ import { workbenchCoverage } from "../../lib/mpp/coverage";
 import { isWindowOff, projectQuantity, reconcileProjects, siteName } from "../../lib/mpp/match";
 import { buildOrderPlan, DEFAULT_PLAN_SETTINGS, findPlanIssues, measureArrivalOffsets } from "../../lib/mpp/order-plan";
 import { MppFormatError, parseMppRows } from "../../lib/mpp/parse";
+import { mppProjectName, mppStatus, syncProjectsWithMpp } from "../../lib/mpp/project-sync";
 import { addWeeksTo, formatWeek, isoWeekOf, weeksBetween, weeksInYear, type IsoWeek } from "../../lib/mpp/weeks";
 import { createDeliveryDraft } from "../../lib/drafts";
 import type { Project } from "../../lib/types";
@@ -228,5 +229,48 @@ describe("workbenchCoverage", () => {
     expect(workbenchCoverage("p1", "Door frame", deliveries)).toEqual({ deliveries: 1, pos: 1 });
     expect(workbenchCoverage("p1", "Internal", deliveries)).toEqual({ deliveries: 2, pos: 1 });
     expect(workbenchCoverage("p1", "Flange", deliveries)).toBeNull();
+  });
+});
+
+describe("syncProjectsWithMpp", () => {
+  const workbench: Project[] = [
+    { id: "p1", name: "San Juan Mesa 30T", code: "1701", phase: "30T / 4 sec", productionWindow: "Jul 01, 2027 - Sep 30, 2027", plant: "P", budget: 5 },
+    { id: "p2", name: "Highland - 124 Adapter", code: "1651", phase: "124T / 1 sec", productionWindow: "Jan 01, 2027 - Jun 30, 2027", plant: "", budget: 0 },
+  ];
+  const result = syncProjectsWithMpp(workbench, reconcileProjects(workbench, plan, now), now, (mpp) => `new-${mpp.row}`);
+
+  test("updates dates, scope, quantity, and status from the plan but keeps workbench fields", () => {
+    const mesa = result.projects.find((project) => project.id === "p1")!;
+    expect(mesa).toMatchObject({ code: "1701", plant: "P", budget: 5, phase: "30T / 4 sec", status: "Planning" });
+    // Cutting 2026 W50 (Mon Dec 7) to W51 (Fri Dec 18); no Green Tag rows in this plan.
+    expect(mesa.productionWindow).toBe("Dec 07, 2026 - Dec 18, 2026");
+
+    const highland = result.projects.find((project) => project.id === "p2")!;
+    expect(highland).toMatchObject({ name: "Highland - 126 Adapter", phase: "126T / 1 sec" });
+  });
+
+  test("adds upcoming plan projects the workbench does not have", () => {
+    const added = result.changes.filter((item) => item.kind === "add").map((item) => item.name);
+    expect(added).toEqual(["Roman1 149T", "North Hill 15T"]);
+    expect(result.projects.find((project) => project.id === `new-${plan.projects[1].row}`)).toMatchObject({
+      code: "TBD",
+      phase: "149T / 4 sec",
+      status: "Planning",
+    });
+  });
+
+  test("lists what changed and reports nothing when already in sync", () => {
+    expect(result.changes.find((item) => item.projectId === "p1")!.details).toContain(
+      "Production: Jul 01, 2027 - Sep 30, 2027 -> Dec 07, 2026 - Dec 18, 2026",
+    );
+    const again = syncProjectsWithMpp(result.projects, reconcileProjects(result.projects, plan, now), now, (mpp) => `new-${mpp.row}`);
+    expect(again.changes).toEqual([]);
+  });
+
+  test("marks finished projects complete and running ones active", () => {
+    const [mesa] = plan.projects;
+    expect(mppStatus(mesa, { year: 2027, week: 2 })).toBe("Complete");
+    expect(mppStatus(mesa, { year: 2026, week: 50 })).toBe("Active");
+    expect(mppProjectName(plan.projects[2])).toBe("Highland - 126 Adapter");
   });
 });

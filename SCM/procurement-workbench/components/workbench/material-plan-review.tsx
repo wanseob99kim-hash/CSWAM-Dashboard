@@ -1,5 +1,7 @@
 import type { Workbench } from "@/hooks/useWorkbench";
+import { createId } from "@/lib/ids";
 import { isWindowOff } from "@/lib/mpp/match";
+import { syncProjectsWithMpp } from "@/lib/mpp/project-sync";
 import { MPP_MATERIALS, type MppMaterial } from "@/lib/mpp/parse";
 import { formatWeek } from "@/lib/mpp/weeks";
 
@@ -9,9 +11,13 @@ type MaterialPlanReviewProps = {
 
 /** Lead-time settings, MPP-vs-workbench differences, and data warnings below the order plan. */
 export function MaterialPlanReview({ wb }: MaterialPlanReviewProps) {
-  const { materialPlan } = wb;
-  const { settings, updateSettings, resetSettings, derived } = materialPlan;
+  const { materialPlan, projectList, setProjectList } = wb;
+  const { settings, updateSettings, resetSettings, derived, currentWeek } = materialPlan;
   if (!derived) return null;
+
+  const projectSync = syncProjectsWithMpp(projectList, derived.reconciliation, currentWeek, () => createId("project"));
+  const additions = projectSync.changes.filter((item) => item.kind === "add").length;
+  const updates = projectSync.changes.length - additions;
 
   const { reconciliation, issues, offsets } = derived;
   const windowOff = reconciliation.matches.filter(isWindowOff);
@@ -79,6 +85,27 @@ export function MaterialPlanReview({ wb }: MaterialPlanReviewProps) {
 
       <section className="plan-card" aria-labelledby="plan-reconcile">
         <h3 id="plan-reconcile">MPP vs workbench projects</h3>
+        {projectSync.changes.length ? (
+          <div className="plan-sync">
+            <button type="button" className="primary-action" onClick={() => setProjectList(projectSync.projects)}>
+              Update projects from MPP
+            </button>
+            <details>
+              <summary>
+                {updates} to update, {additions} to add
+              </summary>
+              <ul className="plan-list">
+                {projectSync.changes.map((item) => (
+                  <li key={item.projectId} data-tone={item.kind === "add" ? "info" : "warning"}>
+                    <strong>{item.kind === "add" ? "Add" : "Update"} {item.name}:</strong> {item.details.join("; ")}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </div>
+        ) : (
+          <p className="plan-hint">Project names, scope, production windows, and status match the MPP.</p>
+        )}
         <ul className="plan-list">
           {reconciliation.missingInWorkbench.map((mpp) => (
             <li key={`missing-${mpp.row}`} data-tone="warning">

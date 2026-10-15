@@ -3952,3 +3952,15 @@ button.plan-kpi:focus-visible {
     transition: none;
   }
 }
+
+.plan-sync {
+  display: grid;
+  gap: 8px;
+}
+
+.plan-sync summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
