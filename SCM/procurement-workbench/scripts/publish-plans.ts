@@ -6,6 +6,7 @@
 //   npm run plans:publish                 # local dev server (http://localhost:5179)
 //   npm run plans:publish -- --dry-run    # check and summarise only
 //   npm run plans:publish -- --force      # upload even if the server already has the file
+//   npm run plans:publish -- --all        # every MPP week in MPP/ (for the week picker), not just the newest
 //
 // Hosted site: set MPP_PUBLISH_URL to the site URL and MPP_PUBLISH_TOKEN to the
 // secret configured on the site. The token can only upload these plan files.
@@ -24,6 +25,7 @@ const baseUrl = (process.env.MPP_PUBLISH_URL ?? "http://localhost:5179").replace
 const token = process.env.MPP_PUBLISH_TOKEN;
 const dryRun = process.argv.includes("--dry-run");
 const force = process.argv.includes("--force");
+const allMppWeeks = process.argv.includes("--all");
 const currentWeek = isoWeekOf(new Date());
 
 type PlanKind = "mpp" | "mdmp" | "leadtime";
@@ -73,28 +75,50 @@ function listFiles(dir: string, base = dir): MppFileCandidate[] {
 
 const headers = (): Record<string, string> => (token ? { authorization: `Bearer ${token}` } : {});
 
-async function serverHasSameFile(kind: PlanKind, fileName: string, sizeBytes: number): Promise<boolean | null> {
+type ServerFile = { fileName: string; sizeBytes: number; uploadedAt: string };
+
+async function serverFiles(kind: PlanKind): Promise<ServerFile[] | null> {
   const response = await fetch(`${baseUrl}/api/files?ownerType=workspace&ownerId=${kind}`, { headers: headers() });
   if (!response.ok) return null; // e.g. no browser sign-in when publishing with the token
-  const body = (await response.json()) as { data: Array<{ fileName: string; sizeBytes: number; uploadedAt: string }> };
-  const [latest] = [...body.data].sort((left, right) => right.uploadedAt.localeCompare(left.uploadedAt));
-  return Boolean(latest && latest.fileName === fileName && latest.sizeBytes === sizeBytes);
+  return ((await response.json()) as { data: ServerFile[] }).data;
 }
+
+/** MPP weeks are picked by file name, so any copy on the server counts; MDMP and lead times use the latest upload. */
+function alreadyOnServer(kind: PlanKind, files: ServerFile[] | null, fileName: string, sizeBytes: number): boolean {
+  if (!files) return false;
+  const same = (file: ServerFile) => file.fileName === fileName && file.sizeBytes === sizeBytes;
+  if (kind === "mpp") return files.some(same);
+  const [latest] = [...files].sort((left, right) => right.uploadedAt.localeCompare(left.uploadedAt));
+  return Boolean(latest && same(latest));
+}
+
+const SPREADSHEET = /.xlsx?$/i;
 
 async function publish(plan: (typeof PLANS)[number]): Promise<void> {
   const dir = path.resolve(projectRoot, plan.folder);
-  const latest = existsSync(dir) ? pickLatestMppFile(listFiles(dir)) : null;
+  const candidates = existsSync(dir) ? listFiles(dir) : [];
+  const latest = pickLatestMppFile(candidates);
   if (!latest) {
     console.log(`${plan.label.padEnd(10)} no .xlsx file in ${plan.folder}/, skipped`);
     return;
   }
+  const chosen =
+    plan.kind === "mpp" && allMppWeeks
+      ? candidates.filter((file) => SPREADSHEET.test(file.path) && !path.basename(file.path).startsWith("~$")).sort((left, right) => left.path.localeCompare(right.path))
+      : [latest];
+  const onServer = dryRun ? null : await serverFiles(plan.kind);
+  for (const file of chosen) await publishFile(plan, dir, file.path, onServer);
+}
+
+async function publishFile(plan: (typeof PLANS)[number], dir: string, relativePath: string, onServer: ServerFile[] | null): Promise<void> {
+  const latest = { path: relativePath };
   const bytes = readFileSync(path.join(dir, latest.path));
   const fileName = path.basename(latest.path);
   const summary = plan.summarise(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
   console.log(`${plan.label.padEnd(10)} ${latest.path} (${describeMppFile(fileName)}): ${summary}`);
   if (dryRun) return;
 
-  if (!force && (await serverHasSameFile(plan.kind, fileName, bytes.byteLength))) {
+  if (!force && alreadyOnServer(plan.kind, onServer, fileName, bytes.byteLength)) {
     console.log(`${"".padEnd(10)} already on ${baseUrl}, not uploaded (use --force to upload again)`);
     return;
   }

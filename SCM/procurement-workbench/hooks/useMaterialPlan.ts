@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { attachmentUrl, listAttachments, type AttachmentFile } from "@/lib/files-api";
+import { mppWeekOptions, type MppWeekOption } from "@/lib/mpp/files";
 import { reconcileProjects } from "@/lib/mpp/match";
 import { buildOrderPlan, DEFAULT_PLAN_SETTINGS, findPlanIssues, measureArrivalOffsets, type MaterialPlanSettings } from "@/lib/mpp/order-plan";
 import type { MppPlan } from "@/lib/mpp/parse";
@@ -17,15 +18,16 @@ type LoadState =
   | { kind: "empty" }
   | { kind: "error"; message: string };
 
-const latestFirst = (left: AttachmentFile, right: AttachmentFile) => right.uploadedAt.localeCompare(left.uploadedAt);
+type ListState = { kind: "ok"; files: AttachmentFile[] } | { kind: "error"; message: string };
 
-async function loadLatestPlan(): Promise<LoadState> {
+async function listPlans(): Promise<ListState> {
   const listed = await listAttachments(MPP_OWNER);
   if (listed.kind === "unauthorized") return { kind: "error", message: "Sign in to see the shared production plan." };
   if (listed.kind !== "ok") return { kind: "error", message: listed.message };
-  const [file] = [...listed.data].sort(latestFirst);
-  if (!file) return { kind: "empty" };
+  return { kind: "ok", files: [...listed.data] };
+}
 
+async function loadPlan(file: AttachmentFile): Promise<LoadState> {
   const response = await fetch(attachmentUrl(file.id), { credentials: "same-origin", cache: "no-store" });
   if (!response.ok) return { kind: "error", message: `Could not download ${file.fileName} (${response.status}).` };
   try {
@@ -35,12 +37,21 @@ async function loadLatestPlan(): Promise<LoadState> {
   }
 }
 
+/** Uploaded files that name no week (rare) are still usable: newest upload first. */
+const latestUpload = (files: AttachmentFile[]) => [...files].sort((left, right) => right.uploadedAt.localeCompare(left.uploadedAt))[0] ?? null;
+
 /**
- * The latest shared MPP and the purchasing plan derived from it. Loaded once the
+ * The shared MPP for the chosen plan week (the newest by default) and the
+ * purchasing plan derived from it. Loaded once the
  * workspace is ready; This Week and the navigation badges depend on it.
  */
 export function useMaterialPlan(active: boolean, projects: Project[]) {
   const [state, setState] = useState<LoadState>({ kind: "idle" });
+  const [files, setFiles] = useState<AttachmentFile[] | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const weekOptions: MppWeekOption<AttachmentFile>[] = useMemo(() => mppWeekOptions(files ?? []), [files]);
+  const latestFile = weekOptions.find((option) => option.file)?.file ?? (files ? latestUpload(files) : null);
+  const selectedFile = files?.find((file) => file.id === selectedId) ?? latestFile;
   const [settings, setSettings] = useState<MaterialPlanSettings>(DEFAULT_PLAN_SETTINGS);
   const currentWeek = useMemo(() => isoWeekOf(new Date()), []);
 
@@ -55,13 +66,32 @@ export function useMaterialPlan(active: boolean, projects: Project[]) {
     let current = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setState({ kind: "loading" });
-    void loadLatestPlan().then((next) => {
-      if (current) setState(next);
+    void listPlans().then((listed) => {
+      if (!current) return;
+      if (listed.kind === "error") setState(listed);
+      else setFiles(listed.files);
     });
     return () => {
       current = false;
     };
   }, [active]);
+
+  useEffect(() => {
+    if (!files) return;
+    if (!selectedFile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setState({ kind: "empty" });
+      return;
+    }
+    let current = true;
+    setState({ kind: "loading" });
+    void loadPlan(selectedFile).then((next) => {
+      if (current) setState(next);
+    });
+    return () => {
+      current = false;
+    };
+  }, [files, selectedFile]);
 
   const plan = state.kind === "ready" ? state.plan : null;
   const derived = useMemo(() => {
@@ -84,6 +114,11 @@ export function useMaterialPlan(active: boolean, projects: Project[]) {
 
   return {
     state,
+    weekOptions,
+    selectedFileId: selectedFile?.id ?? null,
+    /** True while an older plan week than the newest upload is shown. */
+    viewingOlder: Boolean(selectedFile && latestFile && selectedFile.id !== latestFile.id),
+    selectPlanFile: (fileId: string) => setSelectedId(fileId),
     currentWeek,
     settings,
     updateSettings,

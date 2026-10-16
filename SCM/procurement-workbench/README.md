@@ -36,6 +36,7 @@ Put the newest files in their folders (any subfolder) and publish them:
 ```bash
 npm run plans:publish -- --dry-run   # check each file and print its summary
 npm run plans:publish                # upload to the local dev server
+npm run plans:publish -- --all       # every MPP week in MPP/, for the week picker
 ```
 
 The newest file per folder is picked by the year, week, and revision in its

@@ -4002,3 +4002,42 @@ button.plan-kpi:focus-visible {
   margin-top: 2px;
   color: var(--muted);
 }
+
+.mpp-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  border: 1px solid rgba(47, 103, 177, 0.24);
+  border-radius: 999px;
+  padding: 0 4px 0 10px;
+  background: rgba(47, 103, 177, 0.07);
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.mpp-picker select {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mpp-picker select:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.mpp-picker small {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.mpp-picker[data-older] {
+  border-color: rgba(176, 112, 0, 0.4);
+  background: rgba(176, 112, 0, 0.08);
+  color: #8a5a00;
+}

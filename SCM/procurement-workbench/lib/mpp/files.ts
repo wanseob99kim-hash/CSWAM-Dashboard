@@ -49,3 +49,35 @@ export function pickLatestMppFile(candidates: readonly MppFileCandidate[]): MppF
     })[0] ?? null
   );
 }
+
+export type MppWeekOption<T> = { year: number; week: number; file: T | null };
+
+const isNewer = (left: MppFileVersion & { uploadedAt: string }, right: MppFileVersion & { uploadedAt: string }) =>
+  (left.revision ?? -1) !== (right.revision ?? -1) ? (left.revision ?? -1) > (right.revision ?? -1) : left.uploadedAt > right.uploadedAt;
+
+/**
+ * One choice per plan week, newest first: every week of the newest plan's year
+ * up to its week (weeks without an uploaded file have `file: null`), then the
+ * uploaded weeks of earlier years. A week with several revisions keeps the
+ * highest revision, then the latest upload.
+ */
+export function mppWeekOptions<T extends { fileName: string; uploadedAt: string }>(files: readonly T[]): MppWeekOption<T>[] {
+  const byWeek = new Map<string, { year: number; week: number; file: T; version: MppFileVersion & { uploadedAt: string } }>();
+  for (const file of files) {
+    if (!SPREADSHEET.test(file.fileName) || LOCK_FILE.test(file.fileName)) continue;
+    const version = { ...mppFileVersion(file.fileName), uploadedAt: file.uploadedAt };
+    if (version.year === null || version.week === null) continue;
+    const key = `${version.year}-${version.week}`;
+    const current = byWeek.get(key);
+    if (!current || isNewer(version, current.version)) byWeek.set(key, { year: version.year, week: version.week, file, version });
+  }
+  const uploaded = [...byWeek.values()].sort((left, right) => right.year - left.year || right.week - left.week);
+  if (!uploaded.length) return [];
+  const newest = uploaded[0];
+  const options: MppWeekOption<T>[] = [];
+  for (let week = newest.week; week >= 1; week -= 1) {
+    options.push({ year: newest.year, week, file: byWeek.get(`${newest.year}-${week}`)?.file ?? null });
+  }
+  for (const item of uploaded) if (item.year < newest.year) options.push({ year: item.year, week: item.week, file: item.file });
+  return options;
+}

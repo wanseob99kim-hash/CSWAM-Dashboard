@@ -41,7 +41,8 @@ function weeksLabel(weeks: number): string {
 
 export function MaterialPlanPanel({ wb }: MaterialPlanPanelProps) {
   const { activeWorkspace, materialPlan, deliveryList, projectScope, activeProject } = wb;
-  const { state, currentWeek, settings, derived } = materialPlan;
+  const { state, currentWeek, settings, derived, viewingOlder, weekOptions, selectPlanFile } = materialPlan;
+  const newestPlan = weekOptions.find((option) => option.file)?.file ?? null;
   const [filter, setFilter] = useState<StatusFilter>("action");
   const [customer, setCustomer] = useState("All");
 
@@ -91,6 +92,14 @@ export function MaterialPlanPanel({ wb }: MaterialPlanPanelProps) {
           </div>
         </div>
 
+        {viewingOlder && newestPlan ? (
+          <p className="scope-hint">
+            Showing an earlier plan week; order deadlines are still counted from today.{" "}
+            <button type="button" className="link-action" onClick={() => selectPlanFile(newestPlan.id)}>
+              Back to {describeMppFile(newestPlan.fileName)}
+            </button>
+          </p>
+        ) : null}
         {state.kind === "loading" ? <p className="empty-state">Reading the production plan…</p> : null}
         {state.kind === "empty" ? <p className="empty-state">No production plan available yet.</p> : null}
         {state.kind === "error" ? <p className="plan-error" role="alert">{state.message}</p> : null}

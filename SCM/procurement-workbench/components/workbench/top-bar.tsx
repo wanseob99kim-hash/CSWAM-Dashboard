@@ -23,7 +23,7 @@ function groupByStatus(projects: Project[]): Array<[string, Project[]]> {
 export function TopBar({ wb }: TopBarProps) {
   const { projectList, projectScope, selectProject, startAddProject, setActiveWorkspace, materialPlan } = wb;
   const selected = projectScope === "all" ? null : projectList.find((project) => project.id === projectScope) ?? null;
-  const plan = materialPlan.state;
+  const { state: plan, weekOptions, selectedFileId, selectPlanFile, viewingOlder } = materialPlan;
 
   return (
     <header className="app-topbar">
@@ -58,7 +58,25 @@ export function TopBar({ wb }: TopBarProps) {
         </button>
       </div>
       <div className="topbar-status">
-        {plan.kind === "ready" ? (
+        {weekOptions.length ? (
+          <label className="mpp-picker" data-older={viewingOlder || undefined} title={plan.kind === "ready" ? `Production plan: ${plan.file.fileName}` : undefined}>
+            <span>MPP</span>
+            <select value={selectedFileId ?? ""} onChange={(event) => selectPlanFile(event.target.value)} aria-label="Production plan week">
+              {weekOptions.map((option) =>
+                option.file ? (
+                  <option key={`${option.year}-${option.week}`} value={option.file.id}>
+                    {describeMppFile(option.file.fileName)}
+                  </option>
+                ) : (
+                  <option key={`${option.year}-${option.week}`} value="" disabled>
+                    WK{option.week} {option.year} · not uploaded
+                  </option>
+                ),
+              )}
+            </select>
+            {plan.kind === "loading" ? <small>Loading…</small> : null}
+          </label>
+        ) : plan.kind === "ready" ? (
           <button type="button" className="mpp-chip" title={`Production plan: ${plan.file.fileName}`} onClick={() => setActiveWorkspace("material")}>
             MPP {describeMppFile(plan.file.fileName)}
           </button>
