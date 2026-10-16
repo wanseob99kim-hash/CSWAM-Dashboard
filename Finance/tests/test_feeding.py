@@ -675,3 +675,16 @@ def test_pipeline_file_comes_from_sales_pipeline_folder(tmp_path):
     folder.mkdir()
     new = make_mpp_pipeline(folder / "CSAM_Pipeline2026_Oct.xlsx")
     assert find_pipeline_file([data_dir(tmp_path, PIPELINE_FOLDER)]) == new
+
+
+def test_pipeline_report_adds_paint_and_material_total(tmp_path):
+    from feeding.pipeline_compare import compare, read_pipeline_unit_values, read_sap_project_costs
+    from feeding.pipeline_report import GROUPS, write_report
+    rows, _ = compare(read_pipeline_unit_values(make_mpp_pipeline(tmp_path / "Pipeline2026.xlsx")),
+                      read_sap_project_costs(make_cogs_package(tmp_path / "Pkg_2026.08.xlsx")))
+    assert "Paint_Pipeline" in rows[0] and rows[0]["Paint_SAP"] is None   # fixtures have no Paint column
+    out = write_report(rows, tmp_path / "report.xlsx", "note")
+    ws = openpyxl.load_workbook(out)["Pipeline vs SAP"]
+    assert [ws.cell(4, 6 + i * 4).value for i in range(len(GROUPS))][-2:] == ["Paint", "Material Total"]
+    material = ws.cell(6, 6 + 6 * 4).value
+    assert material.startswith("=IF(COUNT(") and "SUM(" in material

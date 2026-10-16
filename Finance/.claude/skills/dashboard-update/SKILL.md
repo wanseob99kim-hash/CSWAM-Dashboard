@@ -20,6 +20,7 @@ description: CSWAM Finance 대시보드 월간 업데이트 — Raw data 폴더�
 | `Raw data/Vendor/` | `GL Line item.XLSX` (이름이 GL로 시작) | Vendor 분류. 업체 송장 문서번호로 GL 비용계정 조회 → GL Name. GR/IR·가격차이·Clearing·대차대조표 계정은 제외, 비용계정 금액이 50% 이상일 때만 사용. 못 찾으면 규칙(OTA 105477=Logistics, 106088=Customs Duty) → 알려진 분류 → 자재유형. 없으면 경고만 |
 
 **Sales Pipeline vs SAP 탭 (2026-10-14)**: Sales Pipeline 파일(`Raw data/Sales Pipeline/`, 이름에 Pipeline)의 `MPP Invocing` 시트 섹션당 값(Rev K USD/Sec ×1000, ASP+Handling: Plate=Steel, Flange, Internal, Door Frame) ↔ 최신 Closing Pkg `1-7` 시트 프로젝트별 합계 ÷ QTY. Door Frame = SAP Aluminum. 이름 자동 매칭(연도·사이즈 제거, 유사도 0.85), Buffalo Gap은 100T+2T 합산, `2026 GE 114m Forecast`→`4Q25 114M G920`(코드 PROJECT_OVERRIDES), 'Forecast' 줄은 제외. SGRE 프로젝트는 포함 (2026-10-14 사용자 확정, AMPC 탭의 SGRE 제외와 별개).
+대시보드 표에도 Paint·Material Total 칼럼 있음(Material Total은 화면에서 합산). 엑셀 보고서(USD, Paint·Material Total 포함): `python -m feeding.pipeline_report` → `Pipeline_vs_SAP_YYYY.MM.xlsx`. Paint = Paint/Sec + Zinc Wire/Sec + Paint_Zinc Handling/Sec ↔ SAP Paint. Material Total = Steel + Flange + Internal + Door Frame + Paint (Pipeline의 Material Total/Sec는 Welding Bracket·물류 포함이라 안 씀).
 
 **AMPC "PFE Ratio by Project" 표 로직 (2026-10-14 사용자 확정, 사용자 엑셀 피벗과 소수점까지 일치 확인)**
 - 대상 프로젝트·순서: ZMM009 파일 `PIVOT…` 시트 요약표의 `Project Name` 열 (Grand Total 전까지). 없으면 `Relevant Projects…` 시트의 프로젝트.

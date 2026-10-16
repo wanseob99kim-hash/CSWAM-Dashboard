@@ -16,25 +16,30 @@ from pathlib import Path
 
 from .sources import list_xlsx, load_values, number, text
 
-METRICS = ["Revenue", "Steel", "Flange", "Internal", "DoorFrame"]
+METRICS = ["Revenue", "Steel", "Flange", "Internal", "DoorFrame", "Paint"]
+MATERIALS = ["Steel", "Flange", "Internal", "DoorFrame", "Paint"]   # Material Total = sum of these
+OPTIONAL_METRICS = {"Paint"}   # older pipeline / package layouts may not have it
 COMPARE_COLUMNS = (["Customer", "Project", "SapProjects", "PipelineSections", "SapSections"]
                    + [f"{m}_{side}" for m in METRICS for side in ("Pipeline", "SAP")])
 
 SAP_SHEET = re.compile(r"^1-7")
 SAP_HEADER = "PJT Name"
 SAP_COLUMNS = {"Revenue": "Sales Revenue", "Steel": "Steel plate", "Flange": "Flange",
-               "Internal": "Internal", "DoorFrame": "Aluminum"}
+               "Internal": "Internal", "DoorFrame": "Aluminum", "Paint": "Paint"}
 
 MPP_SHEET = re.compile(r"MPP\s*Invo", re.IGNORECASE)   # the workbook spells it 'MPP Invocing'
 # Column names differ between pipeline versions (Jan: 'ASP_Plate', Oct: 'Plate/Sec'), so each
 # column lists every known spelling.
 MPP_REVENUE_K = re.compile(r"^Rev.*(K USD.*Sec|Sec.*K USD)", re.IGNORECASE)
 MPP_SECTIONS = re.compile(r"^(No of Sec\s*\(Act\)|Act Sec)$", re.IGNORECASE)
-MPP_COST_COLUMNS = {   # (unit price names, handling names) — both per section in USD
+MPP_COST_COLUMNS = {   # column groups summed per metric (USD per section); first group = unit price
     "Steel": (("ASP_Plate", "Plate/Sec"), ("Steel Handling", "Steel Handling/Sec")),
     "Flange": (("ASP_Flange", "Flange/Sec"), ("Flange_Handling", "Flange Handling/Sec")),
     "Internal": (("ASP_Internal", "Internal/Sec"), ("Internal Hanling", "Internal Handling/Sec")),
     "DoorFrame": (("ASP_Door Frame", "Door Frame/Sec"), ("D/F Handling", "D/F Handling/Sec")),
+    # Paint = paint + zinc wire (metalizing) + their shared handling, like SAP's Paint sub material
+    "Paint": (("ASP_Paint", "Paint/Sec"), ("ASP_Zinc Wire", "Zinc Wire/Sec"),
+              ("Paint_Zinc Handling", "Paint_Zinc Handling/Sec")),
 }
 PIPELINE_NAME = re.compile(r"pipeline", re.IGNORECASE)
 PIPELINE_FOLDER = "Sales Pipeline"   # Raw data/Sales Pipeline (moved from PFE on 2026-10-14)
@@ -74,8 +79,9 @@ def read_sap_project_costs(path: Path) -> dict[str, dict[str, float]]:
     sub = [text(v) for v in rows[head + 1]]
     pc, qc = top.index(SAP_HEADER), top.index("QTY") if "QTY" in top else None
     cols = {m: sub.index(name) for m, name in SAP_COLUMNS.items() if name in sub}
-    if qc is None or len(cols) != len(SAP_COLUMNS):
-        raise ValueError(f"{path.name}: 1-7 sheet columns QTY / {', '.join(SAP_COLUMNS.values())} not all found")
+    required = [name for m, name in SAP_COLUMNS.items() if m not in OPTIONAL_METRICS]
+    if qc is None or any(name not in sub for name in required):
+        raise ValueError(f"{path.name}: 1-7 sheet columns QTY / {', '.join(required)} not all found")
     totals: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
     for r in rows[head + 2:]:
         project = text(r[pc]) if pc < len(r) else ""
@@ -120,8 +126,9 @@ def read_pipeline_unit_values(path: Path) -> list[dict]:
     def first(names: tuple[str, ...]) -> int | None:
         return next((labels[n] for n in names if n in labels), None)
 
-    cost_cols = {m: (first(asp), first(handling)) for m, (asp, handling) in MPP_COST_COLUMNS.items()}
-    missing = [MPP_COST_COLUMNS[m][0][0] for m, (asp, _) in cost_cols.items() if asp is None]
+    cost_cols = {m: [first(names) for names in groups] for m, groups in MPP_COST_COLUMNS.items()}
+    missing = [MPP_COST_COLUMNS[m][0][0] for m, cs in cost_cols.items()
+               if cs[0] is None and m not in OPTIONAL_METRICS]
     if missing:
         raise ValueError(f"{path.name}: MPP columns not found: {', '.join(missing)}")
 
@@ -140,8 +147,8 @@ def read_pipeline_unit_values(path: Path) -> list[dict]:
         cell = lambda c: number(r[c]) if c is not None and c < len(r) else 0.0  # noqa: E731
         row = {"Customer": text(r[0]), "Project": project, "Sections": cell(sec_col),
                "Revenue": cell(rev_col) * 1000}
-        for metric, (asp, handling) in cost_cols.items():
-            row[metric] = cell(asp) + cell(handling)
+        for metric, cs in cost_cols.items():
+            row[metric] = sum(cell(c) for c in cs)
         out.append(row)
     return out
 
@@ -180,6 +187,7 @@ def compare(pipeline_rows: list[dict], sap: dict[str, dict[str, float]]) -> tupl
         for m in METRICS:
             row[f"{m}_Pipeline"] = round(p[m], 2) if p[m] else None
             total = sum(sap.get(s, {}).get(m, 0.0) for s in matched)
-            row[f"{m}_SAP"] = round(total / qty, 2) if qty else None
+            has_sap = any(m in sap.get(s, {}) for s in matched)
+            row[f"{m}_SAP"] = round(total / qty, 2) if qty and has_sap else None
         out.append(row)
     return out, skipped

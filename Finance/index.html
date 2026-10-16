@@ -25,14 +25,26 @@
 body{font-family:'Inter',-apple-system,system-ui,sans-serif;background:var(--canvas);color:var(--ink);font-size:14px;line-height:1.5;min-height:100vh;display:flex;}
 
 /* Sidebar */
-.sidebar{width:210px;flex-shrink:0;background:var(--canvas-elevated);border-right:1px solid var(--hairline);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:200;}
+.sidebar{width:228px;flex-shrink:0;background:var(--canvas-elevated);border-right:1px solid var(--hairline);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:200;}
 .sidebar-brand{display:flex;align-items:center;gap:10px;padding:20px 16px 18px;border-bottom:1px solid var(--hairline);}
 .nav-mark{width:34px;height:34px;flex-shrink:0;background:var(--primary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;}
 .nav-mark svg{display:block;}
-.nav-wordmark{font-size:12px;font-weight:700;letter-spacing:.2px;color:var(--ink);line-height:1.3;}
-.nav-sub{font-size:10px;color:var(--body);letter-spacing:.1px;}
+.turbine-rotor{transform-box:view-box;transform-origin:12px 9px;animation:turbine-spin 3s linear infinite;}
+@keyframes turbine-spin{to{transform:rotate(360deg);}}
+/* spins even with reduced motion (requested), just slower */
+@media(prefers-reduced-motion:reduce){.turbine-rotor{animation-duration:8s;}}
+.nav-wordmark{font-size:13px;font-weight:700;letter-spacing:.2px;color:var(--ink);line-height:1.3;}
 .sidebar-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:2px;}
 .tab-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:transparent;border:none;border-radius:var(--radius-sm);color:var(--body);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;text-align:left;transition:background .15s,color .15s;}
+.nav-group{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:transparent;border:none;border-radius:var(--radius-sm);color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;text-align:left;transition:background .15s;}
+.nav-group:hover{background:var(--canvas);}
+.nav-group:focus-visible,.tab-btn:focus-visible{outline:2px solid var(--primary);outline-offset:-2px;}
+.nav-group span{flex:1;}
+.nav-chevron{transition:transform .2s ease;opacity:.6;}
+.nav-group[aria-expanded="false"] .nav-chevron{transform:rotate(-90deg);}
+.nav-group-items{display:flex;flex-direction:column;gap:2px;padding-left:6px;margin-left:19px;border-left:1px solid var(--hairline);}
+.nav-group-items .tab-btn{padding:8px 10px;white-space:nowrap;}
+.nav-group-items[hidden]{display:none;}
 .tab-btn:hover{background:var(--canvas);color:var(--ink);}
 .tab-btn.active{background:#e8f5ef;color:var(--primary);font-weight:600;}
 .tab-btn svg{flex-shrink:0;opacity:.7;}
@@ -61,7 +73,7 @@ body{font-family:'Inter',-apple-system,system-ui,sans-serif;background:var(--can
 .btn-primary:hover{background:#0f9488;}
 
 /* Page wrap */
-.page-wrap{margin-left:210px;flex:1;min-width:0;display:flex;flex-direction:column;min-height:100vh;}
+.page-wrap{margin-left:228px;flex:1;min-width:0;display:flex;flex-direction:column;min-height:100vh;}
 .main{padding:var(--md);max-width:1440px;}
 .tab-content{display:none;}
 .tab-content.active{display:block;}
@@ -129,20 +141,22 @@ table.dt .row-sub td:first-child{padding-left:28px;}
 .spend-pill{display:inline-block;min-width:150px;padding:5px 10px;background:#e7f1fb;border:1px solid #b9d3ee;border-radius:3px;color:#1f5c99;font-size:12px;}
 .spend-bar{height:16px;background:#eef1f5;position:relative;}
 .spend-amt{text-align:right;font-weight:700;color:var(--ink);font-size:12px;margin-top:2px;}
-.cmp-tbl{width:100%;border-collapse:collapse;font-size:11.5px;}
-.cmp-tbl th{background:#1f5c99;color:#fff;font-weight:600;padding:6px 5px;border:1px solid #2f6dab;text-align:center;white-space:nowrap;}
+.cmp-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.cmp-tbl th{background:#1f5c99;color:#fff;font-weight:600;padding:5px 2px;border:1px solid #2f6dab;text-align:center;white-space:nowrap;}
 .cmp-tbl th.sub{background:#e7f1fb;color:#1f5c99;font-weight:600;}
-.cmp-tbl td{padding:6px 5px;border:1px solid #e3e8ef;text-align:right;white-space:nowrap;}
-.cmp-tbl td.cust{text-align:left;color:var(--body);}
-.cmp-tbl td.name{text-align:left;white-space:normal;min-width:150px;max-width:190px;}
+.cmp-tbl td{padding:5px 2px;border:1px solid #e3e8ef;text-align:right;white-space:nowrap;}
+.cmp-tbl td.cust{text-align:left;color:var(--body);white-space:normal;max-width:60px;}
+.cmp-tbl td.name{text-align:left;white-space:normal;min-width:95px;max-width:122px;}
 .cmp-tbl td.grp{border-left:2px solid #b9d3ee;}
 .cmp-tbl tr:nth-child(even) td{background:#f7f9fc;}
+.cmp-tbl th.tot{background:#163f6b;}.cmp-tbl th.sub.tot{background:#d3e4f5;color:#163f6b;}
+.cmp-tbl td.tot{background:#f1f6fc !important;}
 .cmp-up{color:#2d8f65;}.cmp-down{color:#d64545;}.cmp-big{font-weight:800;}
 .pd-note{margin-top:6px;padding:7px 12px;font-size:12px;color:#7a4a12;background:#fff4e5;border:1px solid #f2b56b;border-radius:3px;}
 
 /* Responsive */
 @media(max-width:1100px){.kpi-row{grid-template-columns:repeat(3,1fr);}.two-col{grid-template-columns:1fr;}}
-@media(max-width:768px){.sidebar{width:64px;}.sidebar-brand .nav-wordmark,.sidebar-brand .nav-sub,.tab-btn span{display:none;}.page-wrap{margin-left:64px;}.tab-btn{justify-content:center;padding:10px;}}
+@media(max-width:768px){.sidebar{width:64px;}.sidebar-brand .nav-wordmark,.tab-btn span,.nav-group span,.nav-chevron{display:none;}.nav-group-items{margin-left:0;padding-left:0;border-left:none;}.nav-group{justify-content:center;padding:10px;}.page-wrap{margin-left:64px;}.tab-btn{justify-content:center;padding:10px;}}
 @media(max-width:640px){.kpi-row{grid-template-columns:1fr 1fr;}.kpi-value{font-size:22px;}}
 </style>
 </head>
@@ -151,17 +165,28 @@ table.dt .row-sub td:first-child{padding-left:28px;}
 <!-- Sidebar -->
 <aside class="sidebar">
   <div class="sidebar-brand">
-    <div class="nav-mark">
-      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-        <polygon points="10,2 18,7 18,13 10,18 2,13 2,7" fill="white" opacity=".9"/>
+    <div class="nav-mark" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+        <polygon points="11.5,9 12.5,9 13.2,23 10.8,23" fill="white" opacity=".85"/>
+        <g class="turbine-rotor">
+          <path d="M12 9 L11.2 2.6 Q12 1 12.8 2.6 Z" fill="white"/>
+          <path d="M12 9 L11.2 2.6 Q12 1 12.8 2.6 Z" fill="white" transform="rotate(120 12 9)"/>
+          <path d="M12 9 L11.2 2.6 Q12 1 12.8 2.6 Z" fill="white" transform="rotate(240 12 9)"/>
+          <circle cx="12" cy="9" r="1.3" fill="white"/>
+        </g>
       </svg>
     </div>
-    <div>
-      <div class="nav-wordmark">CS WIND America</div>
-      <div class="nav-sub">Financial Dashboard</div>
-    </div>
+    <div class="nav-wordmark">CS WIND America</div>
   </div>
   <nav class="sidebar-nav">
+    <button class="nav-group" id="nav-group-finance" aria-expanded="true" aria-controls="nav-items-finance" onclick="toggleNavGroup(this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 15h3"/>
+      </svg>
+      <span>Finance</span>
+      <svg class="nav-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="nav-group-items" id="nav-items-finance">
     <button class="tab-btn active" onclick="switchTab('earnings')">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
@@ -201,6 +226,7 @@ table.dt .row-sub td:first-child{padding-left:28px;}
       </svg>
       <span>Sales Pipeline vs SAP</span>
     </button>
+    </div>
   </nav>
   <div class="sidebar-footer">
     <span id="last-updated">—</span>
@@ -469,7 +495,7 @@ table.dt .row-sub td:first-child{padding-left:28px;}
   <div class="chart-card">
     <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
       <div class="chart-title">Per-Section Revenue &amp; Material Cost — Pipeline vs SAP</div>
-      <div style="font-size:11px;color:var(--muted);white-space:nowrap">Unit: USD K per section</div>
+      <div style="font-size:11px;color:var(--muted);white-space:nowrap">Unit: USD per section</div>
     </div>
     <div style="margin-top:var(--xs);overflow-x:auto">
       <table class="cmp-tbl">
@@ -480,7 +506,8 @@ table.dt .row-sub td:first-child{padding-left:28px;}
             <th rowspan="2">Sec/<br>Tower</th>
             <th rowspan="2">SAP<br>Sections</th>
             <th colspan="3">Revenue</th><th colspan="3">Steel</th><th colspan="3">Flange</th>
-            <th colspan="3">Internal</th><th colspan="3">Door Frame</th>
+            <th colspan="3">Internal</th><th colspan="3">Door Frame</th><th colspan="3">Paint</th>
+            <th colspan="3" class="tot">Material Total</th>
           </tr>
           <tr>
             <th class="sub">Pipeline</th><th class="sub">SAP</th><th class="sub">Δ</th>
@@ -488,9 +515,11 @@ table.dt .row-sub td:first-child{padding-left:28px;}
             <th class="sub">Pipeline</th><th class="sub">SAP</th><th class="sub">Δ</th>
             <th class="sub">Pipeline</th><th class="sub">SAP</th><th class="sub">Δ</th>
             <th class="sub">Pipeline</th><th class="sub">SAP</th><th class="sub">Δ</th>
+            <th class="sub">Pipeline</th><th class="sub">SAP</th><th class="sub">Δ</th>
+            <th class="sub tot">Pipeline</th><th class="sub tot">SAP</th><th class="sub tot">Δ</th>
           </tr>
         </thead>
-        <tbody id="cmp-tbody"><tr><td colspan="19" style="text-align:center;padding:32px;color:var(--muted)">No data — add the Sales Pipeline file and run the monthly update</td></tr></tbody>
+        <tbody id="cmp-tbody"><tr><td colspan="25" style="text-align:center;padding:32px;color:var(--muted)">No data — add the Sales Pipeline file and run the monthly update</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -1820,14 +1849,21 @@ function renderVTable(data,today) {
 /* ══════════════════════════════════════════
    SALES PIPELINE VS SAP TAB
 ══════════════════════════════════════════ */
-const CMP_METRICS = ['Revenue', 'Steel', 'Flange', 'Internal', 'DoorFrame'];
+const CMP_MATERIALS = ['Steel', 'Flange', 'Internal', 'DoorFrame', 'Paint'];   // Material Total = sum of these
+const CMP_METRICS = ['Revenue', ...CMP_MATERIALS, 'Material'];
 const CMP_BOLD_SHARE = 0.10;
 
 function renderPipelineCompare() {
   const tbody = document.getElementById('cmp-tbody');
   if (!tbody || !pipelineCompare.length) return;
   const num = v => (v === null || v === undefined || v === '') ? null : Number(v);
-  const k = v => v === null ? '<span style="color:var(--muted)">—</span>' : (v / 1000).toFixed(1);
+  // Whole USD, rounded like Excel (half away from zero) so it matches the Excel report
+  const roundAway = (v, digits = 0) => {
+    const f = 10 ** digits, x = Math.round(Math.abs(v) * f * 1e6) / 1e6;
+    return Math.sign(v) * Math.round(x) / f;
+  };
+  const usd = v => roundAway(v).toLocaleString('en-US');
+  const k = v => v === null ? '<span style="color:var(--muted)">—</span>' : usd(v);
   // revenue above plan is favorable; costs below plan are favorable
   // gaps over 10% of the pipeline value: Pipeline, SAP and Δ all in bold
   const isBigGap = (pipe, sap) => pipe !== null && sap !== null && pipe !== 0 && Math.abs((sap - pipe) / pipe) > CMP_BOLD_SHARE;
@@ -1836,17 +1872,25 @@ function renderPipelineCompare() {
     const d = sap - pipe;
     const good = metric === 'Revenue' ? d >= 0 : d <= 0;
     const big = isBigGap(pipe, sap) ? ' cmp-big' : '';
-    const pct = pipe ? ` (${d >= 0 ? '+' : ''}${(d / pipe * 100).toFixed(0)}%)` : '';
+    const share = pipe ? d / pipe * 100 : null;   // sign follows the share (pipeline can be negative)
+    const pct = share !== null ? ` (${share >= 0 ? '+' : ''}${roundAway(share).toFixed(0)}%)` : '';
     const cls = (good ? 'cmp-up' : 'cmp-down') + big;
-    return `<span class="${cls}">${d >= 0 ? '+' : ''}${(d / 1000).toFixed(1)}</span>`
+    return `<span class="${cls}">${d >= 0 ? '+' : ''}${usd(d)}</span>`
       + (pct ? `<div style="font-size:10px" class="${cls}">${pct.trim()}</div>` : '');
   };
   const sec = v => (num(v) === null || num(v) === 0) ? '—' : Math.round(num(v)).toLocaleString('en-US');
-  tbody.innerHTML = pipelineCompare.map(r => {
+  // Material Total per side: sum of the material columns that have a value (none → no data)
+  const materialTotal = (r, side) => {
+    const vals = CMP_MATERIALS.map(m => num(r[m + '_' + side])).filter(v => v !== null);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) : null;
+  };
+  tbody.innerHTML = pipelineCompare.map(row => {
+    const r = { ...row, Material_Pipeline: materialTotal(row, 'Pipeline'), Material_SAP: materialTotal(row, 'SAP') };
     const cells = CMP_METRICS.map((m, i) => {
       const pipe = num(r[m + '_Pipeline']), sap = num(r[m + '_SAP']);
       const b = isBigGap(pipe, sap) ? ' cmp-big' : '';
-      return `<td class="grp${b}">${k(pipe)}</td><td class="${b.trim()}">${k(sap)}</td><td>${delta(m, pipe, sap)}</td>`;
+      const t = m === 'Material' ? ' tot' : '';
+      return `<td class="grp${b}${t}">${k(pipe)}</td><td class="${(b + t).trim()}">${k(sap)}</td><td class="${t.trim()}">${delta(m, pipe, sap)}</td>`;
     }).join('');
     const sapNote = r.SapProjects
       ? `<div style="font-size:10px;color:var(--muted)">SAP: ${escapeHtml(r.SapProjects)}</div>`
@@ -2559,6 +2603,13 @@ function switchTab(tab) {
     try { render(); } catch (e) { console.warn('render ' + tab + ' failed:', e); }
   });
 }
+function toggleNavGroup(btn) {
+  const items = document.getElementById(btn.getAttribute('aria-controls'));
+  const open = btn.getAttribute('aria-expanded') !== 'true';
+  btn.setAttribute('aria-expanded', String(open));
+  items.hidden = !open;
+}
+
 const TAB_RENDERERS = {
   earnings: () => renderEarningsTab(),
   fs:       () => renderFSTab(),
