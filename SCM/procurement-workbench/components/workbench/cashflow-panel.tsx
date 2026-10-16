@@ -18,7 +18,7 @@ export function CashflowPanel({ wb }: CashflowPanelProps) {
       <section className="cashflow-panel" hidden={activeWorkspace !== "cashflow"}>
         <div className="panel-header">
           <div>
-            <h2>Monthly Payment Forecast</h2>
+            <h2>Payment forecast from delivery records</h2>
           </div>
           <div className="filters">
           </div>

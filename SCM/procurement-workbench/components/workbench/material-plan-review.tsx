@@ -1,5 +1,6 @@
 import type { Workbench } from "@/hooks/useWorkbench";
 import { createId } from "@/lib/ids";
+import { suggestedPlanLeadTimes } from "@/lib/leadtime/plan-defaults";
 import { isWindowOff } from "@/lib/mpp/match";
 import { syncProjectsWithMpp } from "@/lib/mpp/project-sync";
 import { MPP_MATERIALS, type MppMaterial } from "@/lib/mpp/parse";
@@ -11,7 +12,7 @@ type MaterialPlanReviewProps = {
 
 /** Lead-time settings, MPP-vs-workbench differences, and data warnings below the order plan. */
 export function MaterialPlanReview({ wb }: MaterialPlanReviewProps) {
-  const { materialPlan, projectList, setProjectList } = wb;
+  const { materialPlan, projectList, setProjectList, mdmp } = wb;
   const { settings, updateSettings, resetSettings, derived, currentWeek } = materialPlan;
   if (!derived) return null;
 
@@ -25,6 +26,10 @@ export function MaterialPlanReview({ wb }: MaterialPlanReviewProps) {
   const warnings = issues.filter((issue) => issue.severity === "warning");
   const notes = issues.filter((issue) => issue.severity === "info");
 
+  const fileLeadTimes = mdmp.leadTable ? suggestedPlanLeadTimes(mdmp.leadTable) : {};
+  const fileDiffers = MPP_MATERIALS.some((material) => fileLeadTimes[material] !== undefined && fileLeadTimes[material] !== settings.leadTimeWeeks[material]);
+  const applyFileLeadTimes = () => updateSettings({ ...settings, leadTimeWeeks: { ...settings.leadTimeWeeks, ...fileLeadTimes } });
+
   const setLeadTime = (material: MppMaterial, value: number) =>
     updateSettings({ ...settings, leadTimeWeeks: { ...settings.leadTimeWeeks, [material]: value } });
 
@@ -33,6 +38,18 @@ export function MaterialPlanReview({ wb }: MaterialPlanReviewProps) {
       <section className="plan-card" aria-labelledby="plan-lead-times">
         <h3 id="plan-lead-times">Lead times</h3>
         <p className="plan-hint">Order-by week = needed-on-site week − lead time − safety weeks. Saved on this device; confirm with suppliers.</p>
+        {mdmp.leadTimes.kind === "ready" ? (
+          <p className="plan-hint">
+            Lead-time file {mdmp.leadTimes.file.fileName}: longest DDP route for steel, flange, and door frame; median route for internal parts.{" "}
+            {fileDiffers ? (
+              <button type="button" className="link-action" onClick={applyFileLeadTimes}>
+                Use file values
+              </button>
+            ) : (
+              "Settings match the file."
+            )}
+          </p>
+        ) : null}
         <div className="plan-settings">
           {MPP_MATERIALS.map((material) => (
             <label key={material}>
@@ -47,6 +64,7 @@ export function MaterialPlanReview({ wb }: MaterialPlanReviewProps) {
                 />
                 wk
               </span>
+              {fileLeadTimes[material] !== undefined ? <small>File DDP: {fileLeadTimes[material]} wk</small> : null}
               <small>
                 MPP arrival vs cutting: {offsets[material].weeks >= 0 ? "+" : ""}
                 {offsets[material].weeks} wk ({offsets[material].samples} projects)

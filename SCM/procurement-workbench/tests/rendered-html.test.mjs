@@ -10,6 +10,7 @@ const NAV_SECTIONS = [
   "Supplier Schedule",
   "BOM",
   "MCIP Budget",
+  "Material Delivery",
   "Delivery",
   "Logistics",
   "NCR",

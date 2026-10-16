@@ -62,8 +62,8 @@ function hasPublishToken(request: Request, publishToken: string | undefined): bo
 
 export type UploadOptions = {
   /**
-   * MPP_PUBLISH_TOKEN. Lets `npm run mpp:publish` upload the shared production plan
-   * without a browser sign-in. It is accepted for that one target only.
+   * MPP_PUBLISH_TOKEN. Lets `npm run plans:publish` upload the shared plan files
+   * (MPP, MDMP, lead times) without a browser sign-in, and nothing else.
    */
   publishToken?: string;
 };
@@ -101,8 +101,8 @@ export async function handleUploadFile(
     const issue = owner.error.issues[0];
     return fail(400, `Invalid attachment target: ${issue.path.join(".") || "request"} ${issue.message}`);
   }
-  if (publisher && (owner.data.ownerType !== "workspace" || owner.data.kind !== "mpp")) {
-    return fail(403, "The publish token can only upload the production plan.");
+  if (publisher && owner.data.ownerType !== "workspace") {
+    return fail(403, "The publish token can only upload shared plan files (MPP, MDMP, lead times).");
   }
 
   try {

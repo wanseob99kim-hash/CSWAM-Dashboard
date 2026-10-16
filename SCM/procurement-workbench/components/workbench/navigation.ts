@@ -35,6 +35,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Receive",
     items: [
+      { tab: "mdmp", label: "Material Delivery", description: "PO lines from the MDMP: pickups, arrivals, shortages, and follow-ups." },
       { tab: "delivery", label: "Delivery", description: "Deliveries, ETAs, and production need dates." },
       { tab: "logistics", label: "Logistics", description: "Freight, tariff, and ocean lead time." },
     ],

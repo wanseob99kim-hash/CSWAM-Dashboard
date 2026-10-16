@@ -9,7 +9,9 @@ import { DeliverySchedule } from "@/components/workbench/delivery-schedule";
 import { EcnPanel } from "@/components/workbench/ecn-panel";
 import { LogisticsPanel } from "@/components/workbench/logistics-panel";
 import { MaterialPlanPanel } from "@/components/workbench/material-plan-panel";
+import { MaterialDeliveryPanel } from "@/components/workbench/material-delivery-panel";
 import { McipPanel } from "@/components/workbench/mcip-panel";
+import { MdmpCashflow } from "@/components/workbench/mdmp-cashflow";
 import { NcrPanel } from "@/components/workbench/ncr-panel";
 import { OverviewPanel } from "@/components/workbench/overview-panel";
 import { ProjectEditor } from "@/components/workbench/project-editor";
@@ -41,6 +43,7 @@ export default function Home() {
           <div className="scope-gate" hidden={allProjects}>
             <DeliveryEditor wb={wb} />
           </div>
+          <MaterialDeliveryPanel wb={wb} />
           <DeliveryPortfolio wb={wb} />
           <div className="scope-gate" hidden={allProjects}>
             <SupplierSchedule wb={wb} />
@@ -48,6 +51,7 @@ export default function Home() {
             <BomPanel wb={wb} />
           </div>
           <McipPanel wb={wb} />
+          <MdmpCashflow wb={wb} />
           <CashflowPanel wb={wb} />
           <LogisticsPanel wb={wb} />
           <NcrPanel wb={wb} />

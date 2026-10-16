@@ -23,21 +23,35 @@ none, so `VITE_DEV_USER_EMAIL` stands in for a signed-in user. It only applies i
 dev mode and is compiled out of production builds. Without it the app runs in
 "This device only" mode.
 
-## Weekly MPP (Material Plan tab)
+## Weekly plan files (MPP, MDMP, lead times)
 
-Put the new Master Production Plan in `MPP/` (any subfolder, e.g.
-`MPP/2026/WK43 MPP 2026_R0.xlsx`) and publish it:
+Put the newest files in their folders (any subfolder) and publish them:
+
+| Folder | File | Used by |
+|---|---|---|
+| `MPP/` | Master Production Plan, e.g. `2026/WK43 MPP 2026_R0.xlsx` | Material Plan |
+| `MDMP/` | Material Delivery Management Plan, e.g. `2026/MDMP CSAM 2026_WK42_R1.xlsx` | Material Delivery, This Week, Cashflow |
+| `Lead Time/` | Supplier lead-time workbook | Material Delivery, Material Plan lead times |
 
 ```bash
-npm run mpp:publish -- --dry-run   # check the file and print the order summary
-npm run mpp:publish                # upload to the local dev server
+npm run plans:publish -- --dry-run   # check each file and print its summary
+npm run plans:publish                # upload to the local dev server
 ```
 
-The newest plan is picked by the year, week, and revision in the file name.
-Files in `MPP/` are git-ignored. To publish to the hosted site, set
+The newest file per folder is picked by the year, week, and revision in its
+name; a file already on the server is skipped (`--force` uploads it again).
+The spreadsheets are git-ignored. To publish to the hosted site, set
 `MPP_PUBLISH_URL` to the site URL and `MPP_PUBLISH_TOKEN` to the secret
 configured on the site (at least 32 characters). That token can only upload
-the production plan.
+these shared plan files.
+
+How the MDMP is read: each project sheet lists PO lines with Incoterms and
+payment terms, and per week a `PO`, `OC`, pickup marker (`EXW`/`FCA`/`FOB`)
+or the quantity arriving on site; green cells are done. For pickup Incoterms
+the vendor invoices in the pickup week (when no marker is set, arrival minus the
+observed or lead-time transit); for DAP/DDP in the arrival week. The due date is
+the invoice date plus the payment terms (`EOM + N` counts from month end).
+Amounts appear once SAP PO detail is uploaded in Supplier Schedule.
 
 ## Commands
 
@@ -50,7 +64,7 @@ the production plan.
 | `npm run db:generate` | Generate a Drizzle migration after editing `db/schema.ts` |
 | `npm run db:seed-sql` | Regenerate the demo seed migration from `lib/seed-data.ts` |
 | `npm run db:migrate:local` | Apply migrations to the local dev D1 |
-| `npm run mpp:publish` | Publish the newest MPP in `MPP/` (see above) |
+| `npm run plans:publish` | Publish the newest MPP, MDMP, and lead-time files (see above; `mpp:publish` is an alias) |
 
 ## Layout
 

@@ -3964,3 +3964,41 @@ button.plan-kpi:focus-visible {
   font-size: 13px;
   font-weight: 700;
 }
+
+.plan-lines-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.plan-lines-head h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.plan-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.plan-project-lines {
+  border-top: 1px solid var(--line);
+  padding: 8px 0;
+}
+
+.plan-project-lines summary {
+  cursor: pointer;
+  padding: 4px 0 8px;
+  font-size: 14px;
+}
+
+.plan-list li small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+}

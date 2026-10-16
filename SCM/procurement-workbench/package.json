@@ -18,7 +18,8 @@
     "db:generate": "drizzle-kit generate",
     "db:seed-sql": "tsx scripts/generate-seed-sql.ts",
     "db:migrate:local": "tsx scripts/migrate-local-d1.ts",
-    "mpp:publish": "tsx scripts/publish-mpp.ts"
+    "plans:publish": "tsx scripts/publish-plans.ts",
+    "mpp:publish": "tsx scripts/publish-plans.ts"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",

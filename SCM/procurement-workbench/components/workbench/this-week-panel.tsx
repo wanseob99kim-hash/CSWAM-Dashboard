@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { Workbench } from "@/hooks/useWorkbench";
 import { daysBetween, formatShortDate } from "@/lib/dates";
+import { mdmpFollowUps, PICKUP_ALERT_WEEKS } from "@/lib/mdmp/scope";
 import { formatWeek } from "@/lib/mpp/weeks";
 import { expectedArrival } from "@/lib/this-week";
 import type { WorkspaceTab } from "@/lib/types";
@@ -39,7 +40,9 @@ function Card({ title, count, emptyText, target, linkLabel, onOpen, children }: 
 }
 
 export function ThisWeekPanel({ wb }: ThisWeekPanelProps) {
-  const { activeWorkspace, setActiveWorkspace, thisWeek, projectList, materialPlan } = wb;
+  const { activeWorkspace, setActiveWorkspace, thisWeek, projectList, materialPlan, mdmp, projectScope } = wb;
+  const delivery = mdmpFollowUps(mdmp.derived, projectScope);
+  const hasMdmp = Boolean(mdmp.derived);
   const projectName = (id: string) => projectList.find((project) => project.id === id)?.name ?? id;
   const overdue = thisWeek.orders.filter((row) => row.status !== "order-soon");
   const soon = thisWeek.orders.filter((row) => row.status === "order-soon");
@@ -49,6 +52,8 @@ export function ThisWeekPanel({ wb }: ThisWeekPanelProps) {
   const tiles: Array<{ label: string; value: number; tone: string; target: WorkspaceTab }> = [
     { label: "Orders past deadline", value: overdue.length, tone: "risk", target: "material" },
     { label: `Orders due within ${materialPlan.settings.dueSoonWeeks} weeks`, value: soon.length, tone: "warning", target: "material" },
+    { label: "Material shortages (MDMP)", value: delivery.shortages.length, tone: "risk", target: "mdmp" },
+    { label: `Pickups due within ${PICKUP_ALERT_WEEKS} weeks`, value: delivery.pickups.length, tone: "warning", target: "mdmp" },
     { label: "Deliveries to expedite", value: thisWeek.expedite.length, tone: "risk", target: "delivery" },
     { label: "Arriving in 2 weeks", value: thisWeek.arriving.length, tone: "info", target: "delivery" },
     { label: "Open NCRs", value: openNcrs, tone: "muted", target: "ncr" },
@@ -83,6 +88,72 @@ export function ThisWeekPanel({ wb }: ThisWeekPanelProps) {
               </span>
               <small>
                 needed {formatWeek(row.needWeek)} · {row.needQty.toLocaleString()} {row.source === "estimated" ? "(estimated)" : ""}
+              </small>
+            </li>
+          ))}
+        </Card>
+
+        <Card
+          title="Arrange pickups"
+          count={delivery.pickups.length}
+          emptyText={hasMdmp ? "No EXW/FCA/FOB pickups due in the next two weeks." : "Publish the MDMP to see pickups."}
+          target="mdmp"
+          linkLabel="Material Delivery"
+          onOpen={setActiveWorkspace}
+        >
+          {delivery.pickups.slice(0, LIST_LIMIT).map((item) => (
+            <li key={item.key} data-tone={item.weeksFromNow < 0 ? "risk" : "warning"}>
+              <strong>{formatWeek(item.week)}</strong>
+              <span>
+                {item.line.group} · {item.line.manufacturer || "Vendor"} · {item.line.incoterms}
+              </span>
+              <small>
+                {item.project.sheet} · {item.qty.toLocaleString()} {item.line.unit} · arrives {formatWeek(item.arrivalWeek)}
+                {item.weeksFromNow < 0 ? ` · ${-item.weeksFromNow} wk overdue` : ""}
+              </small>
+            </li>
+          ))}
+        </Card>
+
+        <Card
+          title="Material shortages"
+          count={delivery.shortages.length}
+          emptyText={hasMdmp ? "MDMP arrivals cover production." : "Publish the MDMP to check coverage."}
+          target="mdmp"
+          linkLabel="Material Delivery"
+          onOpen={setActiveWorkspace}
+        >
+          {delivery.shortages.slice(0, LIST_LIMIT).map((check) => (
+            <li key={`${check.project.sheet}-${check.section}-${check.group}`} data-tone="risk">
+              <strong>{check.shortWeek ? formatWeek(check.shortWeek) : "Under-ordered"}</strong>
+              <span>
+                {check.group} · {check.project.sheet}
+              </span>
+              <small>
+                {check.ordered.toLocaleString()} of {check.required.toLocaleString()} {check.basis} ordered · short {check.shortQty.toLocaleString()}
+              </small>
+            </li>
+          ))}
+        </Card>
+
+        <Card
+          title="PO and OC follow-up"
+          count={delivery.actions.length}
+          emptyText={hasMdmp ? "Every MDMP line has a PO and confirmation." : "Publish the MDMP to see PO follow-ups."}
+          target="mdmp"
+          linkLabel="Material Delivery"
+          onOpen={setActiveWorkspace}
+        >
+          {delivery.actions.slice(0, LIST_LIMIT).map((action) => (
+            <li key={action.key} data-tone={action.kind === "place-po" ? "risk" : "warning"}>
+              <strong>{action.kind === "place-po" ? `PO by ${formatWeek(action.week)}` : "Confirm OC"}</strong>
+              <span>
+                {action.line.group} · {action.line.manufacturer || "Vendor"}
+              </span>
+              <small>
+                {action.project.sheet}
+                {action.kind === "confirm-oc" ? ` · PO ${formatWeek(action.week)}` : ""}
+                {action.firstArrival ? ` · first arrival ${formatWeek(action.firstArrival)}` : ""}
               </small>
             </li>
           ))}

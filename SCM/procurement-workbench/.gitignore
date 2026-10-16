@@ -46,7 +46,9 @@ next-env.d.ts
 # typescript incremental cache
 *.tsbuildinfo
 
-# Production plan (MPP) source files: confidential, never commit
+# Plan source files (MPP, MDMP, lead times): confidential, never commit
 /MPP/
+/MDMP/
+/Lead Time/
 *.xlsx
 *.xls

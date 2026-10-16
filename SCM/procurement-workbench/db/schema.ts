@@ -257,7 +257,7 @@ export const todoItems = sqliteTable(
 );
 
 export const FILE_OWNER_TYPES = ["supplier_plan", "supplier_plan_batch", "workspace"] as const;
-export const FILE_KINDS = ["attachment", "commercial_invoice", "packing_list", "mpp"] as const;
+export const FILE_KINDS = ["attachment", "commercial_invoice", "packing_list", "mpp", "mdmp", "leadtime"] as const;
 
 /** Metadata for attachments whose bytes live in the R2 bucket bound as FILES. */
 export const files = sqliteTable(

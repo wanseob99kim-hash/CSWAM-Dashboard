@@ -183,7 +183,7 @@ export type PurchasePoLine = {
   deliveryDate: string;
 };
 
-export type WorkspaceTab = "overview" | "delivery" | "supplier" | "logistics" | "bom" | "cashflow" | "ncr" | "ecn" | "mcip" | "material" | "today";
+export type WorkspaceTab = "overview" | "delivery" | "supplier" | "logistics" | "bom" | "cashflow" | "ncr" | "ecn" | "mcip" | "material" | "today" | "mdmp";
 
 /** "all" for every project, or one project id. Shared by every section. */
 export type ProjectScope = "all" | string;

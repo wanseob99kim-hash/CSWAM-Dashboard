@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NAV_GROUPS } from "@/components/workbench/navigation";
 import type { Workbench } from "@/hooks/useWorkbench";
+import { mdmpFollowUps } from "@/lib/mdmp/scope";
 import type { WorkspaceTab } from "@/lib/types";
 
 type AppNavProps = {
@@ -19,10 +20,13 @@ function navBadges(wb: Workbench): Partial<Record<WorkspaceTab, Badge>> {
   const planOverdue = planRows.filter((row) => row.status === "order-overdue" || row.status === "need-passed").length;
   const planSoon = planRows.filter((row) => row.status === "order-soon").length;
   const openNcrs = thisWeek.openSupplierNcrs.length + thisWeek.openInternalNcrs.length;
-  const urgent = overdue + thisWeek.expedite.length;
+  const delivery = mdmpFollowUps(wb.mdmp.derived, projectScope);
+  const deliveryRisk = delivery.shortages.length + delivery.lateArrivals.length;
+  const urgent = overdue + thisWeek.expedite.length + delivery.shortages.length;
   return {
     today: { count: urgent || thisWeek.orders.length, tone: urgent ? "risk" : "warning" },
     material: { count: planOverdue || planSoon, tone: planOverdue ? "risk" : "warning" },
+    mdmp: { count: deliveryRisk || delivery.pickups.length, tone: deliveryRisk ? "risk" : "warning" },
     delivery: { count: thisWeek.expedite.length, tone: "risk" },
     ncr: { count: openNcrs, tone: "muted" },
   };
