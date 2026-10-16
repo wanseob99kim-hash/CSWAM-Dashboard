@@ -13,7 +13,13 @@ export function useWorkbench() {
   const derived = useWorkbenchDerived(state);
   const actions = useWorkbenchActions({ ...state, ...derived });
   const materialPlan = useMaterialPlan(state.hydrated, state.projectList);
-  const mdmp = useMdmp(state.hydrated, state.projectList, state.purchasePoLines, materialPlan.settings);
+  const mdmp = useMdmp(
+    state.hydrated,
+    state.projectList,
+    state.purchasePoLines,
+    materialPlan.settings,
+    materialPlan.state.kind === "ready" ? materialPlan.state.plan : null,
+  );
   const thisWeek = useMemo(
     () =>
       buildThisWeek({

@@ -3,8 +3,10 @@ import { findLeadTime, parseLeadTimeSheets } from "../../lib/leadtime/parse";
 import { suggestedPlanLeadTimes } from "../../lib/leadtime/plan-defaults";
 import { cashEvents, coverageChecks, lineLeadTime, lineShipments, poValueByLine, purchaseActions, upcomingShipments } from "../../lib/mdmp/analysis";
 import { issueMatchesSheet, matchMdmpProjects } from "../../lib/mdmp/match";
+import { describeDrift, matchMdmpToMpp, scheduleDrift, withMppProcesses } from "../../lib/mdmp/mpp-sync";
 import { assignWeekYears, MdmpFormatError, parseMdmpSheets, type Grid, type MdmpLine } from "../../lib/mdmp/parse";
 import { DEFAULT_PLAN_SETTINGS } from "../../lib/mpp/order-plan";
+import type { MppPlan, MppProject } from "../../lib/mpp/parse";
 import { formatWeek, type IsoWeek } from "../../lib/mpp/weeks";
 import { formatPaymentTerms, parsePaymentTerms, paymentDueDate } from "../../lib/payment-terms";
 import type { Project, PurchasePoLine } from "../../lib/types";
@@ -229,5 +231,51 @@ describe("MDMP project matching", () => {
     const [mdmp] = plan().projects;
     expect(issueMatchesSheet("Test Site", mdmp)).toBe(true);
     expect(issueMatchesSheet("Elsewhere", mdmp)).toBe(false);
+  });
+});
+
+describe("MDMP vs MPP", () => {
+  const mppProject = (row: number, title: string, towers: number, cutting: Array<[IsoWeek, number]>): MppProject => ({
+    row,
+    title,
+    customer: "",
+    reference: null,
+    tonsPerTower: null,
+    towers,
+    sectionsPerTower: 4,
+    isAdapter: false,
+    materials: {},
+    processes: { Cutting: cutting.map(([week, qty]) => ({ week, qty })) },
+  });
+  const mppPlan = (projects: MppProject[]) => ({ sheetName: "AM", projects }) as unknown as MppPlan;
+
+  test("matches sheets by site name, preferring the same tower count", () => {
+    const [mdmp] = plan().projects;
+    const matches = matchMdmpToMpp([mdmp], mppPlan([mppProject(5, "Test Site 20T X 4S", 20, []), mppProject(9, "Test Site 10T X 4S", 10, [])]));
+    expect(matches.get("Test Site")?.row).toBe(9);
+  });
+
+  test("uses the MPP cutting plan for shortages and reports where the MDMP differs", () => {
+    const [mdmp] = plan().projects;
+    // The MPP moved cutting later: 2027 W02 and W03 instead of 2026 W52 and 2027 W01 (2026 has 53 weeks).
+    const mpp = mppProject(9, "Test Site 10T X 4S", 10, [[week(2027, 2), 20], [week(2027, 3), 20]]);
+    const matches = matchMdmpToMpp([mdmp], mppPlan([mpp]));
+
+    const synced = withMppProcesses(mdmp, matches.get(mdmp.sheet));
+    expect(synced.processes.Cutting).toEqual(mpp.processes.Cutting);
+    expect(mdmp.processes.Cutting?.[0].week).toEqual(week(2026, 52)); // the original is untouched
+    const steel = coverageChecks(synced, week(2026, 50)).find((check) => check.group === "Steel plate");
+    // Arrivals 20 in W01 and 20 in W03 now cover cutting in W02 and W03.
+    expect(steel).toMatchObject({ status: "covered", shortWeek: null });
+
+    const [drift] = scheduleDrift([mdmp], matches);
+    expect(drift).toMatchObject({ process: "Cutting", mdmpTotal: 40, mppTotal: 40, weeksChanged: 4 });
+    expect(describeDrift(drift)).toBe(`starts 3 wk later in the MPP (${formatWeek(week(2027, 2))}) · 4 weeks differ`);
+  });
+
+  test("keeps the MDMP plan when the sheet has no MPP project", () => {
+    const [mdmp] = plan().projects;
+    expect(withMppProcesses(mdmp, undefined)).toBe(mdmp);
+    expect(scheduleDrift([mdmp], new Map())).toEqual([]);
   });
 });

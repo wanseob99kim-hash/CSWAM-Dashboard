@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { Workbench } from "@/hooks/useWorkbench";
 import { isPickupTerm, lineShipments } from "@/lib/mdmp/analysis";
 import { issueMatchesSheet } from "@/lib/mdmp/match";
+import { describeDrift } from "@/lib/mdmp/mpp-sync";
 import type { MdmpLine, MdmpProject } from "@/lib/mdmp/parse";
 import { describeMppFile } from "@/lib/mpp/read-workbook";
 import { formatWeek, weeksBetween } from "@/lib/mpp/weeks";
@@ -28,7 +29,8 @@ function lineSummary(line: MdmpLine) {
 }
 
 export function MaterialDeliveryPanel({ wb }: MaterialDeliveryPanelProps) {
-  const { activeWorkspace, mdmp, projectScope, projectList, setActiveWorkspace } = wb;
+  const { activeWorkspace, mdmp, projectScope, projectList, setActiveWorkspace, materialPlan } = wb;
+  const mppLabel = materialPlan.state.kind === "ready" ? `MPP ${describeMppFile(materialPlan.state.file.fileName)}` : null;
   const { derived, currentWeek, leadTimes } = mdmp;
   const [section, setSection] = useState<"all" | MdmpLine["section"]>("all");
   const hidden = activeWorkspace !== "mdmp";
@@ -44,6 +46,7 @@ export function MaterialDeliveryPanel({ wb }: MaterialDeliveryPanelProps) {
   const issues = (derived?.openIssues ?? []).filter(
     (issue) => projectScope === "all" || projects.some((project) => issueMatchesSheet(issue.project, project)),
   );
+  const drift = (derived?.drift ?? []).filter((item) => inScope(item.project));
   const overdue = upcoming.filter((item) => item.weeksFromNow < 0);
   const unmatched = (derived?.plan.projects ?? []).filter((project) => !derived?.projectIdBySheet.has(project.sheet));
   const scopeName = projectScope === "all" ? null : projectList.find((project) => project.id === projectScope)?.name;
@@ -101,7 +104,8 @@ export function MaterialDeliveryPanel({ wb }: MaterialDeliveryPanelProps) {
             <section className="plan-card" aria-labelledby="mdmp-shortages">
               <h3 id="mdmp-shortages">Shortage check: arrivals vs production need</h3>
               <p className="plan-hint">
-                Cumulative arrivals against the MDMP&apos;s own production plan (main material vs cutting, internal material vs IM release). Groups ordered on a different quantity basis are not compared.
+                Cumulative arrivals against production need (main material vs cutting, internal material vs IM release, shipping hardware vs shipping), taken from{" "}
+                {mppLabel ? `${mppLabel} where the project is in it, else the MDMP's own plan` : "the MDMP's own plan (no MPP loaded)"}. Groups ordered on a different quantity basis are not compared.
               </p>
               {shortages.length ? (
                 <div className="plan-table-wrap">
@@ -123,7 +127,10 @@ export function MaterialDeliveryPanel({ wb }: MaterialDeliveryPanelProps) {
                           <td>
                             <span className="status tone-risk">{check.status === "short" ? "Short" : "Under-ordered"}</span>
                           </td>
-                          <td>{check.project.sheet}</td>
+                          <td>
+                            {check.project.sheet}
+                            <small>need from {derived.mppBySheet.has(check.project.sheet) ? "MPP" : "MDMP"}</small>
+                          </td>
                           <td>
                             {check.group}
                             <small>{SECTION_LABEL[check.section]} vs {check.process}</small>
@@ -145,6 +152,25 @@ export function MaterialDeliveryPanel({ wb }: MaterialDeliveryPanelProps) {
                 <p className="plan-hint">Arrivals cover production for every compared material.</p>
               )}
             </section>
+
+            {drift.length ? (
+              <section className="plan-card" aria-labelledby="mdmp-drift">
+                <h3 id="mdmp-drift">MDMP schedule differs from {mppLabel ?? "the MPP"}</h3>
+                <p className="plan-hint">
+                  The MDMP&apos;s production rows are older than the MPP for these projects. Shortages above use the MPP; ask the MDMP owner to refresh these sheets.
+                </p>
+                <ul className="plan-list">
+                  {drift.map((item) => (
+                    <li key={`${item.project.sheet}-${item.process}`} data-tone="warning">
+                      <strong>{item.project.sheet}</strong> · {item.process}
+                      <small>
+                        MDMP from {item.mdmpStart ? formatWeek(item.mdmpStart) : "-"}: {describeDrift(item)}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
 
             <div className="plan-review">
               <section className="plan-card" aria-labelledby="mdmp-shipments">

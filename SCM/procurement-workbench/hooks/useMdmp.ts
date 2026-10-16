@@ -12,9 +12,11 @@ import {
   type LineLeadTime,
 } from "@/lib/mdmp/analysis";
 import { matchMdmpProjects } from "@/lib/mdmp/match";
+import { matchMdmpToMpp, scheduleDrift, withMppProcesses } from "@/lib/mdmp/mpp-sync";
 import type { MdmpLine, MdmpPlan } from "@/lib/mdmp/parse";
 import { readMdmpWorkbook } from "@/lib/mdmp/read-workbook";
 import type { MaterialPlanSettings } from "@/lib/mpp/order-plan";
+import type { MppPlan, MppProject } from "@/lib/mpp/parse";
 import { isoWeekOf } from "@/lib/mpp/weeks";
 import type { Project, PurchasePoLine } from "@/lib/types";
 
@@ -43,7 +45,7 @@ async function loadLatest<T>(ownerId: "mdmp" | "leadtime", read: (data: ArrayBuf
  * purchasing: lines needing a PO or OC, pickups and arrivals coming up,
  * material shortages against production, and vendor payments.
  */
-export function useMdmp(enabled: boolean, projects: Project[], poLines: PurchasePoLine[], settings: MaterialPlanSettings) {
+export function useMdmp(enabled: boolean, projects: Project[], poLines: PurchasePoLine[], settings: MaterialPlanSettings, mppPlan: MppPlan | null) {
   const [mdmp, setMdmp] = useState<Loaded<MdmpPlan>>({ kind: "idle" });
   const [leadTimes, setLeadTimes] = useState<Loaded<LeadTimeTable>>({ kind: "idle" });
   const currentWeek = useMemo(() => isoWeekOf(new Date()), []);
@@ -76,17 +78,22 @@ export function useMdmp(enabled: boolean, projects: Project[], poLines: Purchase
       return lead;
     };
     const projectIdBySheet = matchMdmpProjects(projects, plan.projects);
+    // Shortages follow the MPP shown in the top bar; the MDMP copy is the fallback.
+    const mppBySheet = mppPlan ? matchMdmpToMpp(plan.projects, mppPlan) : new Map<string, MppProject>();
+    const scheduled = plan.projects.map((project) => withMppProcesses(project, mppBySheet.get(project.sheet)));
     return {
       plan,
       leadTimeFor,
       projectIdBySheet,
       actions: purchaseActions(plan.projects, leadTimeFor, currentWeek, settings.safetyWeeks),
-      coverage: plan.projects.flatMap((project) => coverageChecks(project, currentWeek)),
+      mppBySheet,
+      drift: scheduleDrift(plan.projects, mppBySheet),
+      coverage: scheduled.flatMap((project) => coverageChecks(project, currentWeek)),
       upcoming: upcomingShipments(plan.projects, leadTimeFor, currentWeek, UPCOMING_WEEKS),
       cash: cashEvents(plan.projects, leadTimeFor, poValueByLine(plan.projects, poLines)),
       openIssues: plan.issues.filter((issue) => !/^clos/i.test(issue.status)),
     };
-  }, [plan, table, settings, projects, poLines, currentWeek]);
+  }, [plan, table, settings, projects, poLines, currentWeek, mppPlan]);
 
   return { mdmp, leadTimes, leadTable: table, currentWeek, derived };
 }
