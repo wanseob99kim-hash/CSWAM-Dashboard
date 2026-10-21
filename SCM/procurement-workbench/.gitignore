@@ -50,5 +50,6 @@ next-env.d.ts
 /MPP/
 /MDMP/
 /Lead Time/
+/WINSYS/
 *.xlsx
 *.xls
