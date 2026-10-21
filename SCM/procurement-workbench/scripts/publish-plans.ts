@@ -4,7 +4,7 @@
 //   Lead Time/  Overall lead time workbook  -> lead times for both
 //   WINSYS/     PO Status exports (PO Detail/, GR Detail/, Invoice Detail/)
 //               -> one JSON extract: PO values, receipts, invoices and due dates
-//   Sales Pipeline (Finance/Raw data/Sales Pipeline, newest *Pipeline*.xlsx)
+//   Raw data/Sales Pipeline/ (and Finance/Raw data/Sales Pipeline), *Pipeline*.xlsx
 //               -> per-section material prices: MCIP budgets
 //
 //   npm run plans:publish                 # local dev server (http://localhost:5179)
@@ -24,7 +24,16 @@ import { buildOrderPlan, DEFAULT_PLAN_SETTINGS } from "../lib/mpp/order-plan";
 import { describeMppFile, readMppWorkbook } from "../lib/mpp/read-workbook";
 import { formatWeek, isoWeekOf } from "../lib/mpp/weeks";
 import * as XLSX from "xlsx";
-import { materialPerSection, parsePipelineRows, pipelineSheetName, type PipelineFile } from "../lib/pipeline/parse";
+import {
+  materialPerSection,
+  mergePipelineProjects,
+  parsePipelineRows,
+  parseProjectMasterRows,
+  pipelineSheetName,
+  projectMasterSheetName,
+  type PipelineFile,
+  type PipelineProject,
+} from "../lib/pipeline/parse";
 import { readWinsysBomFile } from "../lib/winsys/bom";
 import { buildWinsysExtract } from "../lib/winsys/extract";
 import { parseGrDetail, parseInvoiceDetail, parsePoDetail } from "../lib/winsys/parse";
@@ -217,26 +226,52 @@ async function publishWinsys(): Promise<void> {
   await upload("winsys", "WINSYS", `WINSYS extract ${asOf}.json`, bytes, await serverFiles("winsys"));
 }
 
-/** The Sales Pipeline lives with the Finance dashboard; the newest workbook there is the budget source. */
+/**
+ * Sales Pipeline budgets. Per-section prices come from the newest workbook
+ * (by modification time) with an "MPP Invoicing" sheet; projects missing there
+ * (next year's intake) come from the newest "Project master" sheet. Both the
+ * workbench's own Raw data/Sales Pipeline folder and the Finance one are read.
+ */
 async function publishPipeline(): Promise<void> {
-  const dir = path.resolve(projectRoot, process.env.PIPELINE_DIR ?? "../../Finance/Raw data/Sales Pipeline");
-  const files = existsSync(dir) ? listFiles(dir).filter((file) => /pipeline/i.test(file.path) && /\.xlsx$/i.test(file.path) && !path.basename(file.path).startsWith("~$")) : [];
-  // Newest by name ("…Oct_Rev02" after "…Oct_Rev00"), then by modification time.
-  const newest = [...files].sort((left, right) => right.path.localeCompare(left.path, undefined, { numeric: true }) || right.modifiedMs - left.modifiedMs)[0];
-  if (!newest) {
-    console.log(`${"Pipeline".padEnd(10)} no *Pipeline*.xlsx in ${dir}, skipped`);
+  const dirs = (process.env.PIPELINE_DIRS ?? "Raw data/Sales Pipeline;../../Finance/Raw data/Sales Pipeline")
+    .split(";")
+    .map((dir) => path.resolve(projectRoot, dir.trim()))
+    .filter((dir) => existsSync(dir));
+  const files = dirs
+    .flatMap((dir) => listFiles(dir).map((file) => ({ ...file, full: path.join(dir, file.path) })))
+    .filter((file) => /pipeline/i.test(file.path) && /\.xlsx$/i.test(file.path) && !path.basename(file.path).startsWith("~$"))
+    .sort((left, right) => right.modifiedMs - left.modifiedMs);
+  if (!files.length) {
+    console.log(`${"Pipeline".padEnd(10)} no *Pipeline*.xlsx in ${dirs.join(", ") || "the pipeline folders"}, skipped`);
     return;
   }
-  const workbook = XLSX.read(readFileSync(path.join(dir, newest.path)), { type: "buffer" });
-  const sheet = pipelineSheetName(workbook.SheetNames);
-  if (!sheet) throw new Error(`${newest.path}: no "MPP Invoicing" sheet`);
-  const projects = parsePipelineRows(XLSX.utils.sheet_to_json(workbook.Sheets[sheet], { header: 1, defval: "" }) as unknown[][]);
-  const file: PipelineFile = { version: 1, source: path.basename(newest.path), projects };
+  const read = (file: string, pick: (names: string[]) => string | null) => {
+    const workbook = XLSX.read(readFileSync(file), { type: "buffer" });
+    const sheet = pick(workbook.SheetNames);
+    return sheet ? (XLSX.utils.sheet_to_json(workbook.Sheets[sheet], { header: 1, defval: "" }) as unknown[][]) : null;
+  };
+  let invoicing: { file: string; projects: PipelineProject[] } | null = null;
+  let master: { file: string; projects: PipelineProject[] } | null = null;
+  for (const file of files) {
+    if (!invoicing) {
+      const rows = read(file.full, pipelineSheetName);
+      if (rows) invoicing = { file: path.relative(projectRoot, file.full), projects: parsePipelineRows(rows) };
+    }
+    if (!master) {
+      const rows = read(file.full, projectMasterSheetName);
+      if (rows) master = { file: path.relative(projectRoot, file.full), projects: parseProjectMasterRows(rows) };
+    }
+    if (invoicing && master) break;
+  }
+  const projects = mergePipelineProjects(invoicing?.projects ?? [], master?.projects ?? []);
+  const sources = [invoicing ? `MPP Invoicing: ${invoicing.file}` : null, master ? `Project master: ${master.file}` : null].filter(Boolean).join("; ");
+  const file: PipelineFile = { version: 1, source: sources, projects };
   const priced = projects.filter((project) => materialPerSection(project) > 0).length;
-  console.log(`${"Pipeline".padEnd(10)} ${newest.path}: ${projects.length} projects, ${priced} with material prices`);
+  console.log(`${"Pipeline".padEnd(10)} ${sources}: ${projects.length} projects, ${priced} with material prices`);
   if (dryRun) return;
   const bytes = new TextEncoder().encode(JSON.stringify(file));
-  await upload("pipeline", "Pipeline", `Pipeline budgets ${path.basename(newest.path, ".xlsx")}.json`, bytes, await serverFiles("pipeline"));
+  const stamp = new Date(files[0].modifiedMs).toISOString().slice(0, 10);
+  await upload("pipeline", "Pipeline", `Pipeline budgets ${stamp}.json`, bytes, await serverFiles("pipeline"));
 }
 
 async function main() {

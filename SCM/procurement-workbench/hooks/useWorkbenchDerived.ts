@@ -365,6 +365,8 @@ export function useWorkbenchDerived(state: WorkspaceState, shared: SharedExtract
       budgetSource,
       pipelineProject: fallback.pipelineProject,
       materialSource,
+      /** Budget and cost both known: only then is the MCIP meaningful (and counted in the totals). */
+      comparable: budget > 0 && forecastCost > 0,
       towerQty,
       materialCost,
       logisticsCost,
@@ -390,7 +392,8 @@ export function useWorkbenchDerived(state: WorkspaceState, shared: SharedExtract
       return left.project.name.localeCompare(right.project.name);
     });
 
-  const mcipTotals = mcipVisibleRows.reduce(
+  // Projects with a budget but no cost yet (no BOM or deliveries) would read as pure margin.
+  const mcipTotals = mcipVisibleRows.filter((row) => row.comparable).reduce(
     (total, row) => ({
       budget: total.budget + row.budget,
       towerQty: total.towerQty + row.towerQty,

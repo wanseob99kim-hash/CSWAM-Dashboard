@@ -39,6 +39,10 @@ export function McipPanel({ wb }: McipPanelProps) {
             </select>
           </div>
         </div>
+        <p className="plan-hint">
+          Totals cover the {mcipVisibleRows.filter((row) => row.comparable).length} of {mcipVisibleRows.length} projects with both a budget and a cost; the others show
+          &quot;no cost yet&quot; or &quot;no budget yet&quot;.
+        </p>
         <div className="mcip-summary">
           <article>
             <span>Total budget</span>
@@ -94,16 +98,22 @@ export function McipPanel({ wb }: McipPanelProps) {
                 </small>
               </span>
               <span>{formatMoney(item.forecastCost)}</span>
-              <span><i className={item.mcipAmount >= 0 ? "check yes" : "check no"}>{formatMoney(item.mcipAmount)}</i></span>
               <span>
-                <strong>{formatMoney(item.mcipPerTowerDap)}</strong>
+                {item.comparable ? (
+                  <i className={item.mcipAmount >= 0 ? "check yes" : "check no"}>{formatMoney(item.mcipAmount)}</i>
+                ) : (
+                  <small>{item.budget > 0 ? "no cost yet" : "no budget yet"}</small>
+                )}
+              </span>
+              <span>
+                <strong>{item.comparable ? formatMoney(item.mcipPerTowerDap) : "-"}</strong>
                 <small>{item.towerQty.toLocaleString()} towers</small>
               </span>
               <span>
-                <strong>{formatMoney(item.mcipPerTowerDdp)}</strong>
+                <strong>{item.comparable ? formatMoney(item.mcipPerTowerDdp) : "-"}</strong>
                 <small>{item.towerQty.toLocaleString()} towers</small>
               </span>
-              <span>{formatPercent(item.mcipPercent)}</span>
+              <span>{item.comparable ? formatPercent(item.mcipPercent) : "-"}</span>
               <span>
                 <strong>{formatMoney(item.materialCost)}</strong>
                 <small>{item.materialSource === "sap-bom" ? "SAP BOM × towers" : item.materialSource === "deliveries" ? "delivery records" : "no BOM or deliveries"}</small>

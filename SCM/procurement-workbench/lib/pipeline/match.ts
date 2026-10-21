@@ -6,6 +6,7 @@ import type { PipelineProject } from "./parse";
 
 const CUSTOMER_WORDS = new Set(["vestas", "vt", "nordex", "sgre", "se", "ge", "xcel", "accio", "aes", "fge"]);
 const FILLER_WORDS = new Set(["adapter", "adapters", "adap", "tw", "phase"]);
+const MODEL_CODE = /^[a-z]{1,3}\d/;
 
 /** "2026 Panther Grove II" and "Panther Grove Phase 2 - 100T" both become "panther grove ii". */
 export function pipelineKey(name: string): string {
@@ -14,8 +15,10 @@ export function pipelineKey(name: string): string {
     .replace(/\bphase\s*2\b/g, "ii")
     .replace(/[^a-z0-9 ]+/g, " ")
     .split(/\s+/)
-    .map((word) => word.replace(/\d+[a-z]*$/, ""))
-    .filter((word) => word && !/\d/.test(word) && !CUSTOMER_WORDS.has(word) && !FILLER_WORDS.has(word))
+    // Short-prefix codes ("ts114", "ts130") name the model and stay; quantities ("149t", "37s") and
+    // numbers glued to a name ("roman1", "highland126s") are dropped.
+    .map((word) => (MODEL_CODE.test(word) ? word : word.replace(/\d+[a-z]*$/, "")))
+    .filter((word) => word && (MODEL_CODE.test(word) || !/\d/.test(word)) && !CUSTOMER_WORDS.has(word) && !FILLER_WORDS.has(word))
     .join(" ");
 }
 

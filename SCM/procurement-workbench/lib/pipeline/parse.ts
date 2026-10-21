@@ -36,7 +36,7 @@ const COLUMNS: Record<keyof PipelinePerSection, string[][]> = {
   steel: [["ASP_Plate", "Plate/Sec"], ["Steel Handling", "Steel Handling/Sec"]],
   doorFrame: [["ASP_Door Frame", "Door Frame/Sec"], ["D/F Handling", "D/F Handling/Sec"]],
   flange: [["ASP_Flange", "Flange/Sec"], ["Flange_Handling", "Flange Handling/Sec"]],
-  weldingBracket: [["ASP_Welding Bracket", "Welding Bracket/Sec"], ["WB Handling", "WB Handling/Sec"]],
+  weldingBracket: [["ASP_Welding Bracket", "Welding Bracket/Sec"], ["WB Handling", "WB_Hanling", "WB Handling/Sec"]],
   internal: [["ASP_Internal", "Internal/Sec"], ["Internal Hanling", "Internal Handling/Sec"]],
   paint: [["ASP_Paint", "Paint/Sec"], ["ASP_Zinc Wire", "Zinc Wire/Sec"], ["Paint_Zinc Handling", "Paint_Zinc Handling/Sec"]],
 };
@@ -98,6 +98,75 @@ export function parsePipelineRows(rows: unknown[][]): PipelineProject[] {
     });
   }
   return projects;
+}
+
+const PROJECT_MASTER_SHEET = /^Project master/i;
+const PROJECT_MASTER_SCAN_ROWS = 15;
+
+export function projectMasterSheetName(sheetNames: string[]): string | null {
+  return sheetNames.find((name) => PROJECT_MASTER_SHEET.test(name.trim())) ?? null;
+}
+
+/**
+ * The "Project master" sheet of the global pipeline workbook: one row per
+ * project with prices per TOWER ("ASP_Plate" 420,000 for five sections),
+ * converted here to per section. It covers projects the MPP Invoicing sheet
+ * does not (next year's intake).
+ */
+export function parseProjectMasterRows(rows: unknown[][]): PipelineProject[] {
+  const head = rows.slice(0, PROJECT_MASTER_SCAN_ROWS).findIndex((row) => (row ?? []).some((cell) => text(cell) === "Project Name") && (row ?? []).some((cell) => text(cell) === "# of section"));
+  if (head < 0) throw new PipelineFormatError("'Project Name / # of section' header not found in the Project master sheet.");
+  const labels = new Map<string, number>();
+  (rows[head] ?? []).forEach((value, column) => {
+    const label = text(value);
+    if (label && !labels.has(label)) labels.set(label, column);
+  });
+  const nameColumn = labels.get("Project Name")!;
+  const sectionsColumn = labels.get("# of section");
+  const customerColumn = labels.get("Customer");
+  const totalColumn = labels.get("Material Total");
+  const columns = Object.fromEntries(
+    Object.entries(COLUMNS).map(([key, groups]) => [key, groups.map((names) => names.map((name) => labels.get(name)).find((column) => column !== undefined))]),
+  ) as Record<keyof PipelinePerSection, Array<number | undefined>>;
+
+  const projects: PipelineProject[] = [];
+  for (const row of rows.slice(head + 1)) {
+    const project = text(row?.[nameColumn]);
+    if (!project) continue;
+    const cell = (column: number | undefined) => (column === undefined ? 0 : numberOf(row?.[column]));
+    const sections = cell(sectionsColumn);
+    if (sections <= 0) continue;
+    const perSection = Object.fromEntries(
+      Object.entries(columns).map(([key, list]) => [key, list.reduce<number>((sum, column) => sum + cell(column), 0) / sections]),
+    ) as PipelinePerSection;
+    projects.push({
+      customer: customerColumn === undefined ? "" : text(row?.[customerColumn]),
+      project,
+      sectionsPerTower: sections,
+      revenuePerSection: 0,
+      perSection,
+      materialTotalPerSection: cell(totalColumn) / sections,
+    });
+  }
+  return projects;
+}
+
+/**
+ * One row per project from several sources, earlier sources first: a project
+ * already listed (by name) keeps its first row.
+ */
+export function mergePipelineProjects(...sources: PipelineProject[][]): PipelineProject[] {
+  const seen = new Set<string>();
+  const merged: PipelineProject[] = [];
+  for (const source of sources) {
+    for (const project of source) {
+      const key = project.project.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(project);
+    }
+  }
+  return merged;
 }
 
 /** Material the MCIP compares against: everything the SAP BOM buys (paint is bought outside it). */

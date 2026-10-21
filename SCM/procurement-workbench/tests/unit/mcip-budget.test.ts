@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { mcipFallbacks, sectionsPerTower } from "../../lib/mcip";
 import { pipelineFor, pipelineKey } from "../../lib/pipeline/match";
-import { materialPerSection, parsePipelineRows, PipelineFormatError, readPipelineFile } from "../../lib/pipeline/parse";
+import { materialPerSection, mergePipelineProjects, parsePipelineRows, parseProjectMasterRows, PipelineFormatError, readPipelineFile } from "../../lib/pipeline/parse";
 import type { Project } from "../../lib/types";
 import type { SapProjectBom } from "../../lib/winsys/bom";
 
@@ -77,5 +77,41 @@ describe("Sales Pipeline budgets", () => {
     expect(sectionsPerTower({ name: "x", phase: "59T / 3 sec" })).toBe(3);
     expect(sectionsPerTower({ name: "Heritage Prairie 137T X 5S", phase: "" })).toBe(5);
     expect(sectionsPerTower({ name: "x", phase: "" })).toBeNull();
+  });
+});
+
+describe("pipeline name keys", () => {
+  test("keep model codes apart while dropping quantities", () => {
+    expect(pipelineKey("2027 Nordex TS130-00 Forecast")).toBe("ts130 forecast");
+    expect(pipelineKey("TS130-00 Forecast 20T")).toBe("ts130 forecast");
+    expect(pipelineKey("2027 Nordex TS114-03 Forecast")).not.toBe(pipelineKey("TS130-00 Forecast 20T"));
+    expect(pipelineKey("2027 Roman 1 149T")).toBe(pipelineKey("Roman1 149T"));
+    expect(pipelineKey("2026 Highland 37S")).toBe("highland");
+  });
+});
+
+describe("Project master sheet", () => {
+  const master = [
+    ["", "", "Yes"],
+    ["", "Year intake", "Project Name", "Customer", "# of section", "ASP_Plate", "Steel Handling", "ASP_Flange", "Flange_Handling", "ASP_Paint", "ASP_Internal", "Internal Hanling ", "Material Total"],
+    ["", "", "2027 Roman 1 149T", "Vestas", 4, 323000, 4000, 45700, 300, 20000, 85000, 0, 491300],
+    ["", "", "2027 Longspur 53T", "Vestas", 5, "", "", "", "", "", "", "", 670000],
+    ["", "", "2026 Xcel-Rush Creek", "Vestas", 0, "", "", "", "", "", "", "", ""],
+  ];
+
+  test("converts per-tower prices to per section and skips rows without sections", () => {
+    const rows = parseProjectMasterRows(master);
+    expect(rows.map((row) => row.project)).toEqual(["2027 Roman 1 149T", "2027 Longspur 53T"]);
+    expect(rows[0].perSection).toMatchObject({ steel: 327000 / 4, flange: 46000 / 4, internal: 85000 / 4, paint: 5000 });
+    expect(materialPerSection(rows[0])).toBe((327000 + 46000 + 85000) / 4);
+    expect(materialPerSection(rows[1])).toBe(134000);
+  });
+
+  test("MPP Invoicing rows win over Project master rows of the same project", () => {
+    const invoicing = parsePipelineRows(rows);
+    const merged = mergePipelineProjects(invoicing, [{ ...invoicing[0], perSection: { ...invoicing[0].perSection, steel: 1 } }, ...parseProjectMasterRows(master)]);
+    expect(merged.filter((row) => row.project === "Goodnight II")).toHaveLength(1);
+    expect(merged.find((row) => row.project === "Goodnight II")?.perSection.steel).toBe(78300);
+    expect(merged.map((row) => row.project)).toContain("2027 Roman 1 149T");
   });
 });
