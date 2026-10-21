@@ -3,6 +3,7 @@ import type { CashEvent } from "../../lib/mdmp/analysis";
 import type { MdmpLine, MdmpProject } from "../../lib/mdmp/parse";
 import type { Project } from "../../lib/types";
 import { cancelledMdmpPos, receiptGaps, splitInvoiced, unknownMdmpPos, winsysPoAmounts, winsysProjectMatcher } from "../../lib/winsys/analysis";
+import { bomProjectId, explodeProjectBoms, readWinsysBomFile, type WinsysBomFile } from "../../lib/winsys/bom";
 import { buildWinsysExtract, readWinsysExtract, type WinsysExtract } from "../../lib/winsys/extract";
 import { headerPaths, parseGrDetail, parseInvoiceDetail, parsePoDetail, WinsysFormatError } from "../../lib/winsys/parse";
 
@@ -210,5 +211,56 @@ describe("WINSYS against the MDMP", () => {
     expect(match("Four Horizons 210T")).toBe("fh");
     expect(match("Panther Grove Phase 2 - 100T")).toBe("pg100");
     expect(match("Non project related")).toBeNull();
+  });
+});
+
+describe("WINSYS SAP BOM", () => {
+  const poLine = (material: string, projectId: string, po: string, usdAmount: number, poQty: number, workStatus = "Process") =>
+    ({ ...parsePoDetail([...PO_HEADER, poRow(po, 10, workStatus, poQty, 0, 0, usdAmount)])[0], material, materialDesc: `${material} desc`, projectId, itemGroup: material.startsWith("S") ? "Steel Plate" : "Int. Mouting Parts" });
+
+  // Two sections (TOP and BOT) of project 1590; each body holds two cans with one plate each.
+  const bom: WinsysBomFile = {
+    collectedAt: "2026-10-20T00:00:00Z",
+    headers: ["TOP", "BOT"].flatMap((section) => [
+      { itemCd: `1029-1590${section}AM1`, itemNm: `Four Horizons 210T ${section},AM`, bomCd: "1", qty: 1, unit: "EA" },
+      { itemCd: `1029-1590${section}BS`, itemNm: `Four Horizons 210T ${section}, BS`, bomCd: "2", qty: 1, unit: "EA" },
+      { itemCd: `1029-1590${section}S1`, itemNm: `Four Horizons 210T ${section}, S1`, bomCd: "3", qty: 1, unit: "EA" },
+      { itemCd: `1029-1590${section}S2`, itemNm: `Four Horizons 210T ${section}, S2`, bomCd: "4", qty: 1, unit: "EA" },
+    ]),
+    details: Object.fromEntries(
+      ["TOP", "BOT"].flatMap((section) => [
+        [`1029-1590${section}AM1`, [{ child: "LADDER1AM", qty: 3, unit: "EA" }, { child: `1029-1590${section}BS`, qty: 1, unit: "EA" }]],
+        [`1029-1590${section}BS`, [{ child: `1029-1590${section}S1`, qty: 1, unit: "EA" }, { child: `1029-1590${section}S2`, qty: 1, unit: "EA" }]],
+        [`1029-1590${section}S1`, [{ child: "SPLATE1AM", qty: 1, unit: "PC" }]],
+        [`1029-1590${section}S2`, [{ child: "SPLATE2AM", qty: 1, unit: "PC" }]],
+      ]),
+    ),
+  };
+
+  test("reads the project ID from BOM material codes", () => {
+    expect(bomProjectId("1029460056-1590AM1")).toBe("1590");
+    expect(bomProjectId("20D2421632-1600BS")).toBe("1600");
+    expect(bomProjectId("1029206152_AM1")).toBeNull();
+  });
+
+  test("explodes section roots to purchased parts per tower and prices them from PO lines", () => {
+    const poLines = [
+      poLine("LADDER1AM", "1590", "4500000002", 300, 3),
+      poLine("LADDER1AM", "1700", "4500000009", 999, 1), // another project's price is a fallback only
+      poLine("SPLATE1AM", "1590", "4500000003", 20000, 2),
+      poLine("SPLATE1AM", "1590", "4500000004", 99999, 1, "Cancel"),
+    ];
+    const [project] = explodeProjectBoms(bom, poLines);
+    expect(project.projectId).toBe("1590");
+    expect(project.sections).toEqual(["Four Horizons 210T BOT,AM", "Four Horizons 210T TOP,AM"]);
+    const byMaterial = Object.fromEntries(project.items.map((item) => [item.material, item]));
+    // Both sections: 3 ladders each, one of each plate each.
+    expect(byMaterial.LADDER1AM).toMatchObject({ qtyPerTower: 6, unitPriceUsd: 100, po: "4500000002" });
+    expect(byMaterial.SPLATE1AM).toMatchObject({ qtyPerTower: 2, unitPriceUsd: 10000, itemGroup: "Steel Plate", unit: "PC" });
+    expect(byMaterial.SPLATE2AM).toMatchObject({ qtyPerTower: 2, unitPriceUsd: null, po: null, unit: "PC" });
+  });
+
+  test("rejects a file that is not a BOM collection", () => {
+    expect(() => readWinsysBomFile("{}")).toThrow(/WINSYS BOM/);
   });
 });

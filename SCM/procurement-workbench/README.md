@@ -33,6 +33,7 @@ Put the newest files in their folders (any subfolder) and publish them:
 | `MDMP/` | Material Delivery Management Plan, e.g. `2026/MDMP CSAM 2026_WK42_R1.xlsx` | Material Delivery, This Week, Cashflow |
 | `Lead Time/` | Supplier lead-time workbook | Material Delivery, Material Plan lead times |
 | `WINSYS/PO Detail/`, `WINSYS/GR Detail/`, `WINSYS/Invoice Detail/` | WINSYS > Purchasing > PO Status > PO X GR X Invoice exports (Excel, "non Style"), dated in the name, e.g. `PO Detail List 2026-10-20.xlsx` | PO values, invoiced vs forecast payments, MDMP vs SAP receipts |
+| `WINSYS/BOM/` | SAP BOM collection from WINSYS > Basic > Master Data(SAP) > BOM (JSON of BOM headers and their components, gathered in the browser) | SAP BOM (WINSYS) on the BOM page: parts per tower, priced from WINSYS PO lines |
 
 ```bash
 npm run plans:publish -- --dry-run   # check each file and print its summary

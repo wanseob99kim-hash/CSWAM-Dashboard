@@ -1,5 +1,6 @@
 // The WINSYS extract the dashboard loads: the three PO Status exports reduced
 // to what purchasing needs, small enough to upload and load as one JSON file.
+import { explodeProjectBoms, type SapProjectBom, type WinsysBomFile } from "./bom";
 import type { WinsysInvoice, WinsysPoLine, WinsysReceipt } from "./parse";
 
 export const WINSYS_EXTRACT_VERSION = 2;
@@ -32,10 +33,14 @@ export type WinsysExtract = {
   pos: ExtractPo[];
   /** Invoices due on or after `asOf`, line by line. */
   openInvoices: ExtractInvoice[];
+  /** SAP BOMs per WINSYS project, exploded per tower and priced from PO lines (absent in older extracts). */
+  bom?: SapProjectBom[];
+  /** When the BOMs were collected from WINSYS. */
+  bomCollectedAt?: string;
 };
 
 export function buildWinsysExtract(
-  input: { poLines: WinsysPoLine[]; receipts: WinsysReceipt[]; invoices: WinsysInvoice[] },
+  input: { poLines: WinsysPoLine[]; receipts: WinsysReceipt[]; invoices: WinsysInvoice[]; bom?: WinsysBomFile | null },
   sources: WinsysExtract["sources"],
   asOf: string,
 ): WinsysExtract {
@@ -92,6 +97,7 @@ export function buildWinsysExtract(
     sources,
     pos: [...pos.values()].map((entry) => ({ ...entry, usdAmount: round(entry.usdAmount), invoicedUsd: round(entry.invoicedUsd) })),
     openInvoices: openInvoices.sort((left, right) => (left.dueDate ?? "").localeCompare(right.dueDate ?? "")),
+    ...(input.bom ? { bom: explodeProjectBoms(input.bom, input.poLines), bomCollectedAt: input.bom.collectedAt } : {}),
   };
 }
 

@@ -22,6 +22,7 @@ import { buildOrderPlan, DEFAULT_PLAN_SETTINGS } from "../lib/mpp/order-plan";
 import { describeMppFile, readMppWorkbook } from "../lib/mpp/read-workbook";
 import { formatWeek, isoWeekOf } from "../lib/mpp/weeks";
 import * as XLSX from "xlsx";
+import { readWinsysBomFile } from "../lib/winsys/bom";
 import { buildWinsysExtract } from "../lib/winsys/extract";
 import { parseGrDetail, parseInvoiceDetail, parsePoDetail } from "../lib/winsys/parse";
 
@@ -193,8 +194,12 @@ async function publishWinsys(): Promise<void> {
   }
   const { po, gr, invoice } = found as Record<keyof typeof WINSYS_FOLDERS, NonNullable<ReturnType<typeof newestExport>>>;
   const asOf = po.date ?? new Date().toISOString().slice(0, 10);
+  // Optional: SAP BOMs collected from WINSYS into WINSYS/BOM/*.json (newest file).
+  const bomDir = path.join(root, "BOM");
+  const bomFiles = existsSync(bomDir) ? listFiles(bomDir).filter((file) => file.path.endsWith(".json")).sort((left, right) => right.path.localeCompare(left.path)) : [];
+  const bom = bomFiles[0] ? readWinsysBomFile(readFileSync(path.join(bomDir, bomFiles[0].path), "utf8")) : null;
   const extract = buildWinsysExtract(
-    { poLines: parsePoDetail(readSheetRows(po.file)), receipts: parseGrDetail(readSheetRows(gr.file)), invoices: parseInvoiceDetail(readSheetRows(invoice.file)) },
+    { poLines: parsePoDetail(readSheetRows(po.file)), receipts: parseGrDetail(readSheetRows(gr.file)), invoices: parseInvoiceDetail(readSheetRows(invoice.file)), bom },
     { po: path.basename(po.file), gr: path.basename(gr.file), invoice: path.basename(invoice.file) },
     asOf,
   );
@@ -203,7 +208,7 @@ async function publishWinsys(): Promise<void> {
   const value = live.reduce((sum, po) => sum + po.usdAmount, 0);
   const openDue = extract.openInvoices.filter((item) => (item.dueDate ?? "") >= new Date().toISOString().slice(0, 10)).reduce((sum, item) => sum + item.usdAmount, 0);
   console.log(
-    `${"WINSYS".padEnd(10)} exports of ${asOf}: ${live.length} POs (${Math.round(value / 1e6)}M USD), ${extract.openInvoices.length} open invoice lines, ${Math.round(openDue / 1e6)}M USD invoiced and not yet due; extract ${(bytes.byteLength / 1024 / 1024).toFixed(1)} MB`,
+    `${"WINSYS".padEnd(10)} exports of ${asOf}: ${live.length} POs (${Math.round(value / 1e6)}M USD), ${extract.openInvoices.length} open invoice lines, ${Math.round(openDue / 1e6)}M USD invoiced and not yet due, ${extract.bom?.length ?? 0} project BOMs; extract ${(bytes.byteLength / 1024 / 1024).toFixed(1)} MB`,
   );
   if (dryRun) return;
   await upload("winsys", "WINSYS", `WINSYS extract ${asOf}.json`, bytes, await serverFiles("winsys"));

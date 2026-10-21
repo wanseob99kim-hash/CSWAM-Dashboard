@@ -16,6 +16,7 @@ import { NcrPanel } from "@/components/workbench/ncr-panel";
 import { OverviewPanel } from "@/components/workbench/overview-panel";
 import { ProjectEditor } from "@/components/workbench/project-editor";
 import { ProjectPicker } from "@/components/workbench/project-picker";
+import { SapBomPanel } from "@/components/workbench/sap-bom-panel";
 import { SupplierSchedule } from "@/components/workbench/supplier-schedule";
 import { SyncNotices } from "@/components/workbench/sync-status";
 import { ThisWeekPanel } from "@/components/workbench/this-week-panel";
@@ -49,6 +50,7 @@ export default function Home() {
             <SupplierSchedule wb={wb} />
             <OverviewPanel wb={wb} />
             <BomPanel wb={wb} />
+            <SapBomPanel wb={wb} />
           </div>
           <McipPanel wb={wb} />
           <MdmpCashflow wb={wb} />
