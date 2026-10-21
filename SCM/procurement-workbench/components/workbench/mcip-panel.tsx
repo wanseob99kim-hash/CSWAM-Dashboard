@@ -18,6 +18,10 @@ export function McipPanel({ wb }: McipPanelProps) {
         <div className="panel-header">
           <div>
             <h2>Portfolio Budget Forecast</h2>
+            <p className="plan-subtitle">
+              Budget: typed on the project, else Sales Pipeline material price per section (plate, door frame, flange, welding bracket, internal, with handling;
+              paint excluded) × sections. Material cost: delivery records, else SAP BOM per tower × towers.
+            </p>
           </div>
           <div className="filters smart-filters">
             <select aria-label="MCIP status filter" value={mcipStatusFilter} onChange={(event) => setMcipStatusFilter(event.target.value)}>
@@ -83,7 +87,12 @@ export function McipPanel({ wb }: McipPanelProps) {
                 <small>{item.project.code} · {item.project.phase}</small>
               </span>
               <span><i className={`status-chip ${getStatusTone(getProjectStatus(item.project))}`}>{getProjectStatus(item.project)}</i></span>
-              <span>{formatMoney(item.budget)}</span>
+              <span>
+                <strong>{formatMoney(item.budget)}</strong>
+                <small>
+                  {item.budgetSource === "manual" ? "typed on project" : item.budgetSource === "pipeline" ? `Sales Pipeline · ${item.pipelineProject}` : "no budget yet"}
+                </small>
+              </span>
               <span>{formatMoney(item.forecastCost)}</span>
               <span><i className={item.mcipAmount >= 0 ? "check yes" : "check no"}>{formatMoney(item.mcipAmount)}</i></span>
               <span>
@@ -95,7 +104,10 @@ export function McipPanel({ wb }: McipPanelProps) {
                 <small>{item.towerQty.toLocaleString()} towers</small>
               </span>
               <span>{formatPercent(item.mcipPercent)}</span>
-              <span>{formatMoney(item.materialCost)}</span>
+              <span>
+                <strong>{formatMoney(item.materialCost)}</strong>
+                <small>{item.materialSource === "sap-bom" ? "SAP BOM × towers" : item.materialSource === "deliveries" ? "delivery records" : "no BOM or deliveries"}</small>
+              </span>
               <span>{formatMoney(item.logisticsCost)}</span>
               <span>{formatMoney(item.tariffCost)}</span>
               <span>{formatMoney(item.ncrCost)}</span>

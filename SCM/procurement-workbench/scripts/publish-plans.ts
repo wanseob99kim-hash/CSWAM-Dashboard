@@ -4,6 +4,8 @@
 //   Lead Time/  Overall lead time workbook  -> lead times for both
 //   WINSYS/     PO Status exports (PO Detail/, GR Detail/, Invoice Detail/)
 //               -> one JSON extract: PO values, receipts, invoices and due dates
+//   Sales Pipeline (Finance/Raw data/Sales Pipeline, newest *Pipeline*.xlsx)
+//               -> per-section material prices: MCIP budgets
 //
 //   npm run plans:publish                 # local dev server (http://localhost:5179)
 //   npm run plans:publish -- --dry-run    # check and summarise only
@@ -22,6 +24,7 @@ import { buildOrderPlan, DEFAULT_PLAN_SETTINGS } from "../lib/mpp/order-plan";
 import { describeMppFile, readMppWorkbook } from "../lib/mpp/read-workbook";
 import { formatWeek, isoWeekOf } from "../lib/mpp/weeks";
 import * as XLSX from "xlsx";
+import { materialPerSection, parsePipelineRows, pipelineSheetName, type PipelineFile } from "../lib/pipeline/parse";
 import { readWinsysBomFile } from "../lib/winsys/bom";
 import { buildWinsysExtract } from "../lib/winsys/extract";
 import { parseGrDetail, parseInvoiceDetail, parsePoDetail } from "../lib/winsys/parse";
@@ -34,7 +37,7 @@ const force = process.argv.includes("--force");
 const allMppWeeks = process.argv.includes("--all");
 const currentWeek = isoWeekOf(new Date());
 
-type PlanKind = "mpp" | "mdmp" | "leadtime" | "winsys";
+type PlanKind = "mpp" | "mdmp" | "leadtime" | "winsys" | "pipeline";
 
 const PLANS: Array<{ kind: PlanKind; label: string; folder: string; summarise: (data: ArrayBuffer) => string }> = [
   {
@@ -214,9 +217,32 @@ async function publishWinsys(): Promise<void> {
   await upload("winsys", "WINSYS", `WINSYS extract ${asOf}.json`, bytes, await serverFiles("winsys"));
 }
 
+/** The Sales Pipeline lives with the Finance dashboard; the newest workbook there is the budget source. */
+async function publishPipeline(): Promise<void> {
+  const dir = path.resolve(projectRoot, process.env.PIPELINE_DIR ?? "../../Finance/Raw data/Sales Pipeline");
+  const files = existsSync(dir) ? listFiles(dir).filter((file) => /pipeline/i.test(file.path) && /\.xlsx$/i.test(file.path) && !path.basename(file.path).startsWith("~$")) : [];
+  // Newest by name ("…Oct_Rev02" after "…Oct_Rev00"), then by modification time.
+  const newest = [...files].sort((left, right) => right.path.localeCompare(left.path, undefined, { numeric: true }) || right.modifiedMs - left.modifiedMs)[0];
+  if (!newest) {
+    console.log(`${"Pipeline".padEnd(10)} no *Pipeline*.xlsx in ${dir}, skipped`);
+    return;
+  }
+  const workbook = XLSX.read(readFileSync(path.join(dir, newest.path)), { type: "buffer" });
+  const sheet = pipelineSheetName(workbook.SheetNames);
+  if (!sheet) throw new Error(`${newest.path}: no "MPP Invoicing" sheet`);
+  const projects = parsePipelineRows(XLSX.utils.sheet_to_json(workbook.Sheets[sheet], { header: 1, defval: "" }) as unknown[][]);
+  const file: PipelineFile = { version: 1, source: path.basename(newest.path), projects };
+  const priced = projects.filter((project) => materialPerSection(project) > 0).length;
+  console.log(`${"Pipeline".padEnd(10)} ${newest.path}: ${projects.length} projects, ${priced} with material prices`);
+  if (dryRun) return;
+  const bytes = new TextEncoder().encode(JSON.stringify(file));
+  await upload("pipeline", "Pipeline", `Pipeline budgets ${path.basename(newest.path, ".xlsx")}.json`, bytes, await serverFiles("pipeline"));
+}
+
 async function main() {
   for (const plan of PLANS) await publish(plan);
   await publishWinsys();
+  await publishPipeline();
 }
 
 main().catch((error: unknown) => {

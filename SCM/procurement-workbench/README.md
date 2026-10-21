@@ -34,6 +34,7 @@ Put the newest files in their folders (any subfolder) and publish them:
 | `Lead Time/` | Supplier lead-time workbook | Material Delivery, Material Plan lead times |
 | `WINSYS/PO Detail/`, `WINSYS/GR Detail/`, `WINSYS/Invoice Detail/` | WINSYS > Purchasing > PO Status > PO X GR X Invoice exports (Excel, "non Style"), dated in the name, e.g. `PO Detail List 2026-10-20.xlsx` | PO values, invoiced vs forecast payments, MDMP vs SAP receipts |
 | `WINSYS/BOM/` | SAP BOM collection from WINSYS > Basic > Master Data(SAP) > BOM (JSON of BOM headers and their components, gathered in the browser) | SAP BOM (WINSYS) on the BOM page: parts per tower, priced from WINSYS PO lines |
+| `../../Finance/Raw data/Sales Pipeline/` (`PIPELINE_DIR`) | Newest `*Pipeline*.xlsx` by name; its MPP Invoicing sheet | MCIP budget when a project has no typed budget: material price per section (plate, door frame, flange, welding bracket, internal, with handling) × sections |
 
 ```bash
 npm run plans:publish -- --dry-run   # check each file and print its summary

@@ -5,11 +5,15 @@ import { getDeliveryCategory, getDeliveryStatusLabel, getEstimatedArrival, getIn
 import { average, clampPercent, getProjectStatus } from "@/lib/format";
 import { createSupplierSchedulePlan, renderForwarderNotice, renderPickupReminderEmail, renderSupplierEmail } from "@/lib/supplier-plan";
 import type { BomItem, CashflowForecast } from "@/lib/types";
+import { mcipFallbacks, type BudgetSource, type MaterialSource } from "@/lib/mcip";
+import type { SharedExtracts } from "./useSharedExtracts";
 import type { WorkspaceState } from "./useWorkspaceState";
 
 export type WorkbenchDerived = ReturnType<typeof useWorkbenchDerived>;
 
-export function useWorkbenchDerived(state: WorkspaceState) {
+export function useWorkbenchDerived(state: WorkspaceState, shared: SharedExtracts) {
+  const pipelineRows = shared.pipeline.kind === "ready" ? shared.pipeline.data.projects : [];
+  const sapBoms = shared.winsys.kind === "ready" ? (shared.winsys.data.bom ?? []) : [];
   const {
     projectList, deliveryList, bomItems, supplierNcrs, internalNcrs, ecnRecords, todoItems,
     supplierPlans, purchasePoLines, activeProjectId, category, query, reportProjectId, reportWindow,
@@ -338,18 +342,29 @@ export function useWorkbenchDerived(state: WorkspaceState) {
   const mcipProjectRows = projectList.map((project) => {
     const deliveries = rowsWithRisk.filter((row) => row.projectId === project.id);
     const internalItems = internalNcrs.filter((item) => item.projectId === project.id);
-    const towerQty = deliveries.reduce((sum, row) => sum + row.qty, 0);
-    const materialCost = deliveries.reduce((sum, row) => sum + getMaterialCost(row, bomItems), 0);
+    const fallback = mcipFallbacks(project, pipelineRows, sapBoms);
+    const deliveredTowers = deliveries.reduce((sum, row) => sum + row.qty, 0);
+    // Without delivery records, towers come from the project name and material from the SAP BOM.
+    const towerQty = deliveredTowers || fallback.towers;
+    const deliveryMaterial = deliveries.reduce((sum, row) => sum + getMaterialCost(row, bomItems), 0);
+    const materialSource: MaterialSource = deliveryMaterial > 0 ? "deliveries" : fallback.bomPerTower ? "sap-bom" : "none";
+    const materialCost = materialSource === "sap-bom" ? (fallback.bomPerTower ?? 0) * towerQty : deliveryMaterial;
     const logisticsCost = deliveries.reduce((sum, row) => sum + getProjectedFreightFee(row, rowsWithRisk), 0);
     const tariffCost = deliveries.reduce((sum, row) => sum + getProjectedTariff(row, rowsWithRisk), 0);
     const ncrCost = internalItems.reduce((sum, item) => sum + item.cost, 0);
     const forecastCost = materialCost + logisticsCost + tariffCost + ncrCost;
-    const budget = Number(project.budget || 0);
+    // A budget typed on the project wins; otherwise the Sales Pipeline material budget.
+    const typedBudget = Number(project.budget || 0);
+    const budgetSource: BudgetSource = typedBudget > 0 ? "manual" : fallback.pipelineBudget ? "pipeline" : "none";
+    const budget = budgetSource === "pipeline" ? (fallback.pipelineBudget ?? 0) : typedBudget;
     const mcipAmount = budget - forecastCost;
     const mcipAmountDap = budget - (forecastCost - tariffCost);
     return {
       project,
       budget,
+      budgetSource,
+      pipelineProject: fallback.pipelineProject,
+      materialSource,
       towerQty,
       materialCost,
       logisticsCost,

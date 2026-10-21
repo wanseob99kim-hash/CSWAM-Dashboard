@@ -63,7 +63,7 @@ function hasPublishToken(request: Request, publishToken: string | undefined): bo
 export type UploadOptions = {
   /**
    * MPP_PUBLISH_TOKEN. Lets `npm run plans:publish` upload the shared plan files
-   * (MPP, MDMP, lead times, WINSYS extract) without a browser sign-in, and nothing else.
+   * (MPP, MDMP, lead times, WINSYS extract, pipeline budgets) without a browser sign-in, and nothing else.
    */
   publishToken?: string;
 };
@@ -102,7 +102,7 @@ export async function handleUploadFile(
     return fail(400, `Invalid attachment target: ${issue.path.join(".") || "request"} ${issue.message}`);
   }
   if (publisher && owner.data.ownerType !== "workspace") {
-    return fail(403, "The publish token can only upload shared plan files (MPP, MDMP, lead times, WINSYS extract).");
+    return fail(403, "The publish token can only upload shared plan files (MPP, MDMP, lead times, WINSYS extract, pipeline budgets).");
   }
 
   try {

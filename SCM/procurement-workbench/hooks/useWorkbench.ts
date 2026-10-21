@@ -4,13 +4,15 @@ import { useMemo } from "react";
 import { buildThisWeek } from "@/lib/this-week";
 import { useMaterialPlan } from "./useMaterialPlan";
 import { useMdmp } from "./useMdmp";
+import { useSharedExtracts } from "./useSharedExtracts";
 import { useWorkspaceState } from "./useWorkspaceState";
 
 export type Workbench = ReturnType<typeof useWorkbench>;
 
 export function useWorkbench() {
   const state = useWorkspaceState();
-  const derived = useWorkbenchDerived(state);
+  const shared = useSharedExtracts(state.hydrated);
+  const derived = useWorkbenchDerived(state, shared);
   const actions = useWorkbenchActions({ ...state, ...derived });
   const materialPlan = useMaterialPlan(state.hydrated, state.projectList);
   const mdmp = useMdmp(
@@ -19,6 +21,7 @@ export function useWorkbench() {
     state.purchasePoLines,
     materialPlan.settings,
     materialPlan.state.kind === "ready" ? materialPlan.state.plan : null,
+    shared.winsys,
   );
   const thisWeek = useMemo(
     () =>

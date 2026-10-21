@@ -35,7 +35,7 @@ const OWNER_KINDS = {
   supplier_plan: ["attachment"],
   supplier_plan_batch: ["commercial_invoice", "packing_list"],
   /** Shared, team-wide documents such as the weekly Master Production Plan. */
-  workspace: ["mpp", "mdmp", "leadtime", "winsys"],
+  workspace: ["mpp", "mdmp", "leadtime", "winsys", "pipeline"],
 } as const;
 
 /** Production plans are read by the app, so only spreadsheets are accepted for them. */
@@ -45,6 +45,8 @@ const KIND_EXTENSIONS: Partial<Record<FileOwner["kind"], string[]>> = {
   leadtime: ["xlsx", "xls"],
   /** WINSYS PO, receipt, and invoice extract built by scripts/publish-plans.ts. */
   winsys: ["json"],
+  /** Sales Pipeline per-section material prices, extracted by scripts/publish-plans.ts. */
+  pipeline: ["json"],
 };
 
 const id = z.string().trim().min(1).max(200);

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { attachmentUrl, listAttachments, type AttachmentFile } from "@/lib/files-api";
 import type { LeadTimeTable } from "@/lib/leadtime/parse";
 import { readLeadTimeWorkbook } from "@/lib/leadtime/read-workbook";
 import {
@@ -20,37 +19,27 @@ import type { MppPlan, MppProject } from "@/lib/mpp/parse";
 import { isoWeekOf } from "@/lib/mpp/weeks";
 import type { Project, PurchasePoLine } from "@/lib/types";
 import { cancelledMdmpPos, receiptGaps, splitInvoiced, unknownMdmpPos, winsysPoAmounts } from "@/lib/winsys/analysis";
-import { readWinsysExtract, type WinsysExtract } from "@/lib/winsys/extract";
+import type { WinsysExtract } from "@/lib/winsys/extract";
+import { loadLatestWorkspaceFile as loadLatest, type Loaded } from "@/lib/workspace-files";
 
 /** Pickups and arrivals listed this many weeks ahead. */
 const UPCOMING_WEEKS = 3;
-
-type Loaded<T> = { kind: "idle" | "loading" | "empty" } | { kind: "ready"; file: AttachmentFile; data: T } | { kind: "error"; message: string };
-
-async function loadLatest<T>(ownerId: "mdmp" | "leadtime" | "winsys", read: (data: ArrayBuffer) => T): Promise<Loaded<T>> {
-  const listed = await listAttachments({ ownerType: "workspace", ownerId });
-  if (listed.kind === "unauthorized") return { kind: "error", message: "Sign in to see the shared plan files." };
-  if (listed.kind !== "ok") return { kind: "error", message: listed.message };
-  const [file] = [...listed.data].sort((left, right) => right.uploadedAt.localeCompare(left.uploadedAt));
-  if (!file) return { kind: "empty" };
-  const response = await fetch(attachmentUrl(file.id), { credentials: "same-origin", cache: "no-store" });
-  if (!response.ok) return { kind: "error", message: `Could not download ${file.fileName} (${response.status}).` };
-  try {
-    return { kind: "ready", file, data: read(await response.arrayBuffer()) };
-  } catch (error) {
-    return { kind: "error", message: `${file.fileName}: ${error instanceof Error ? error.message : "could not be read"}` };
-  }
-}
 
 /**
  * The latest shared MDMP and lead-time workbook, and what they mean for
  * purchasing: lines needing a PO or OC, pickups and arrivals coming up,
  * material shortages against production, and vendor payments.
  */
-export function useMdmp(enabled: boolean, projects: Project[], poLines: PurchasePoLine[], settings: MaterialPlanSettings, mppPlan: MppPlan | null) {
+export function useMdmp(
+  enabled: boolean,
+  projects: Project[],
+  poLines: PurchasePoLine[],
+  settings: MaterialPlanSettings,
+  mppPlan: MppPlan | null,
+  winsys: Loaded<WinsysExtract>,
+) {
   const [mdmp, setMdmp] = useState<Loaded<MdmpPlan>>({ kind: "idle" });
   const [leadTimes, setLeadTimes] = useState<Loaded<LeadTimeTable>>({ kind: "idle" });
-  const [winsys, setWinsys] = useState<Loaded<WinsysExtract>>({ kind: "idle" });
   const currentWeek = useMemo(() => isoWeekOf(new Date()), []);
 
   useEffect(() => {
@@ -59,10 +48,8 @@ export function useMdmp(enabled: boolean, projects: Project[], poLines: Purchase
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMdmp({ kind: "loading" });
     setLeadTimes({ kind: "loading" });
-    setWinsys({ kind: "loading" });
     void loadLatest("mdmp", (data) => readMdmpWorkbook(data)).then((next) => active && setMdmp(next));
     void loadLatest("leadtime", readLeadTimeWorkbook).then((next) => active && setLeadTimes(next));
-    void loadLatest("winsys", (data) => readWinsysExtract(new TextDecoder().decode(data))).then((next) => active && setWinsys(next));
     return () => {
       active = false;
     };
