@@ -5,7 +5,7 @@ export type FileOwnerRef = {
   projectId: string;
   ownerType: "supplier_plan" | "supplier_plan_batch" | "workspace";
   ownerId: string;
-  kind: "attachment" | "commercial_invoice" | "packing_list" | "mpp" | "mdmp" | "leadtime";
+  kind: "attachment" | "commercial_invoice" | "packing_list" | "mpp" | "mdmp" | "leadtime" | "winsys";
 };
 
 export type AttachmentFile = FileOwnerRef & {

@@ -1,70 +1,118 @@
 import { useMemo, useState } from "react";
 import type { Workbench } from "@/hooks/useWorkbench";
 import { formatMoney } from "@/lib/format";
-import { monthKey, type CashEvent } from "@/lib/mdmp/analysis";
+import { monthKey } from "@/lib/mdmp/analysis";
+import { describeMppFile } from "@/lib/mpp/read-workbook";
 import { formatWeek } from "@/lib/mpp/weeks";
 import { formatPaymentTerms, parsePaymentTerms } from "@/lib/payment-terms";
+import { upcomingInvoices, winsysProjectMatcher } from "@/lib/winsys/analysis";
 
 type MdmpCashflowProps = {
   wb: Workbench;
 };
 
 const MONTHS_AHEAD = 12;
-const DETAIL_LIMIT = 60;
+const DETAIL_LIMIT = 80;
 const monthLabel = new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
 const dayLabel = new Intl.DateTimeFormat("en-US", { month: "short", day: "2-digit", year: "numeric", timeZone: "UTC" });
 
-type MonthRow = { key: string; label: string; payments: number; priced: number; amount: number; pickupBasis: number };
+type PaymentRow = {
+  key: string;
+  due: Date;
+  /** "invoiced": WINSYS invoice with its due date; "forecast": MDMP shipment not invoiced yet. */
+  kind: "invoiced" | "forecast";
+  when: string;
+  project: string;
+  material: string;
+  detail: string;
+  terms: string;
+  qty: string;
+  amount: number | null;
+};
+
+type MonthRow = { key: string; label: string; invoiced: number; forecast: number; unpriced: number };
+
+const isoDate = (date: Date) => date.toISOString().slice(0, 10);
 
 /**
- * Vendor payments from the MDMP: an EXW/FCA/FOB line is invoiced the week we
- * pick it up, a DAP/DDP line the week it arrives; the due date follows the
- * line's payment terms. Amounts come from SAP PO detail when uploaded.
+ * Vendor payments ahead: invoices already booked in WINSYS (due dates from
+ * WINSYS), plus MDMP shipments not invoiced yet — EXW/FCA/FOB invoiced at
+ * pickup, DAP/DDP at arrival, due by the line's payment terms.
  */
 export function MdmpCashflow({ wb }: MdmpCashflowProps) {
-  const { activeWorkspace, mdmp, projectScope, purchasePoLines, setActiveWorkspace } = wb;
-  const { derived } = mdmp;
-  const [showInvoiced, setShowInvoiced] = useState(false);
+  const { activeWorkspace, mdmp, projectScope, projectList, setActiveWorkspace } = wb;
+  const { derived, winsys } = mdmp;
+  const [showForecastOnly, setShowForecastOnly] = useState(false);
   const today = useMemo(() => new Date(), []);
+  const extract = winsys.kind === "ready" ? winsys.data : null;
 
-  const events = useMemo(
-    () =>
-      (derived?.cash ?? [])
-        .filter((event) => projectScope === "all" || derived?.projectIdBySheet.get(event.project.sheet) === projectScope)
-        .filter((event): event is CashEvent & { dueDate: Date } => event.dueDate !== null && event.dueDate >= today)
-        .sort((left, right) => left.dueDate.getTime() - right.dueDate.getTime()),
-    [derived, projectScope, today],
-  );
+  const rows = useMemo(() => {
+    const out: PaymentRow[] = [];
+    const todayIso = isoDate(today);
+    if (extract) {
+      const projectFor = winsysProjectMatcher(projectList);
+      for (const invoice of upcomingInvoices(extract, todayIso)) {
+        if (projectScope !== "all" && projectFor(invoice.projectName) !== projectScope) continue;
+        out.push({
+          key: `inv-${invoice.invoiceNo}-${invoice.po}-${invoice.line}`,
+          due: new Date(`${invoice.dueDate}T00:00:00Z`),
+          kind: "invoiced",
+          when: `invoiced ${invoice.invoiceDate ?? "-"}`,
+          project: invoice.projectName || "Non-project",
+          material: invoice.itemGroup || "-",
+          detail: `${invoice.vendor} · PO ${invoice.po}/${invoice.line}`,
+          terms: invoice.paymentTerms.replace(/^\[[^\]]*\]\s*/, ""),
+          qty: invoice.qty.toLocaleString(),
+          amount: invoice.usdAmount,
+        });
+      }
+    }
+    for (const event of derived?.cash ?? []) {
+      if (!event.dueDate || event.dueDate < today) continue;
+      if (projectScope !== "all" && derived?.projectIdBySheet.get(event.project.sheet) !== projectScope) continue;
+      if (event.forecastAmount !== null && event.forecastAmount < 0.5) continue; // fully invoiced already
+      out.push({
+        key: event.key,
+        due: event.dueDate,
+        kind: "forecast",
+        when: `${formatWeek(event.invoiceWeek)} at ${event.basis === "pickup" ? `pickup (${event.line.incoterms})` : `delivery (${event.line.incoterms || "-"})`}`,
+        project: event.project.sheet,
+        material: event.line.group,
+        detail: `${event.line.manufacturer}${event.line.poNumbers.length ? ` · PO ${event.line.poNumbers.join(", ")}` : ""}`,
+        terms: formatPaymentTerms(parsePaymentTerms(event.line.paymentTerms)),
+        qty: `${event.qty.toLocaleString()} ${event.line.unit}`,
+        amount: event.forecastAmount,
+      });
+    }
+    return out.sort((left, right) => left.due.getTime() - right.due.getTime());
+  }, [derived, extract, projectList, projectScope, today]);
 
   const months = useMemo(() => {
-    const rows = new Map<string, MonthRow>();
+    const byMonth = new Map<string, MonthRow>();
     const first = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
     for (let offset = 0; offset < MONTHS_AHEAD; offset += 1) {
       const date = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + offset, 1));
-      rows.set(monthKey(date), { key: monthKey(date), label: monthLabel.format(date), payments: 0, priced: 0, amount: 0, pickupBasis: 0 });
+      byMonth.set(monthKey(date), { key: monthKey(date), label: monthLabel.format(date), invoiced: 0, forecast: 0, unpriced: 0 });
     }
-    for (const event of events) {
-      const row = rows.get(monthKey(event.dueDate));
-      if (!row) continue;
-      row.payments += 1;
-      if (event.amount !== null) {
-        row.priced += 1;
-        row.amount += event.amount;
-      }
-      if (event.basis === "pickup") row.pickupBasis += 1;
+    for (const row of rows) {
+      const month = byMonth.get(monthKey(row.due));
+      if (!month) continue;
+      if (row.amount === null) month.unpriced += 1;
+      else if (row.kind === "invoiced") month.invoiced += row.amount;
+      else month.forecast += row.amount;
     }
-    return [...rows.values()];
-  }, [events, today]);
+    return [...byMonth.values()];
+  }, [rows, today]);
 
-  const priced = events.filter((event) => event.amount !== null).length;
-  const detail = events.filter((event) => showInvoiced || !event.done).slice(0, DETAIL_LIMIT);
+  const unpriced = rows.filter((row) => row.amount === null).length;
+  const detail = rows.filter((row) => !showForecastOnly || row.kind === "forecast").slice(0, DETAIL_LIMIT);
   const hidden = activeWorkspace !== "cashflow";
 
-  if (!derived) {
+  if (!derived && !extract) {
     return (
       <section className="material-plan-panel" hidden={hidden}>
-        <h2>Payment forecast from the MDMP</h2>
-        <p className="plan-hint">Publish the MDMP (npm run plans:publish) to forecast vendor payments from pickups and deliveries.</p>
+        <h2>Vendor payment forecast</h2>
+        <p className="plan-hint">Publish the MDMP and the WINSYS exports (npm run plans:publish) to forecast vendor payments.</p>
       </section>
     );
   }
@@ -73,20 +121,21 @@ export function MdmpCashflow({ wb }: MdmpCashflowProps) {
     <section className="material-plan-panel" hidden={hidden} aria-labelledby="mdmp-cash-title">
       <div className="panel-header">
         <div>
-          <h2 id="mdmp-cash-title">Payment forecast from the MDMP</h2>
+          <h2 id="mdmp-cash-title">Vendor payment forecast</h2>
           <p className="plan-subtitle">
-            EXW, FCA, and FOB lines are invoiced when we pick up; DAP and DDP lines when they arrive. Due date = payment terms from that invoice.
+            Invoiced: WINSYS invoices with their due dates{extract ? ` (exports of ${extract.asOf})` : " (WINSYS not published)"}. Forecast: MDMP shipments not invoiced yet —
+            EXW, FCA, and FOB invoiced at pickup, DAP and DDP at arrival, due by the payment terms.
           </p>
         </div>
       </div>
-      {priced < events.length ? (
+      {unpriced ? (
         <p className="scope-hint">
-          {priced} of {events.length} upcoming payments have a value. Upload the SAP PO detail in{" "}
-          <button type="button" className="link-action" onClick={() => setActiveWorkspace("supplier")}>
-            Supplier Schedule
-          </button>{" "}
-          to price the rest; until then they show as quantities.
-          {purchasePoLines.length ? "" : " No PO detail has been uploaded yet."}
+          {unpriced} forecast payments have no price: their PO is not in {extract ? "the WINSYS export" : "any uploaded PO detail"}.{" "}
+          {extract ? null : (
+            <button type="button" className="link-action" onClick={() => setActiveWorkspace("supplier")}>
+              Upload SAP PO detail
+            </button>
+          )}
         </p>
       ) : null}
 
@@ -95,32 +144,35 @@ export function MdmpCashflow({ wb }: MdmpCashflowProps) {
           <thead>
             <tr>
               <th scope="col">Due month</th>
-              <th scope="col" className="numeric">Payments</th>
-              <th scope="col" className="numeric">Invoiced at pickup</th>
-              <th scope="col" className="numeric">Amount (USD, priced only)</th>
+              <th scope="col" className="numeric">Invoiced (WINSYS)</th>
+              <th scope="col" className="numeric">Forecast (MDMP)</th>
+              <th scope="col" className="numeric">Total USD</th>
             </tr>
           </thead>
           <tbody>
-            {months.map((row) => (
-              <tr key={row.key}>
-                <td>{row.label}</td>
-                <td className="numeric">{row.payments}</td>
-                <td className="numeric">{row.pickupBasis}</td>
+            {months.map((month) => (
+              <tr key={month.key}>
+                <td>{month.label}</td>
+                <td className="numeric">{month.invoiced ? formatMoney(month.invoiced) : "-"}</td>
                 <td className="numeric">
-                  {row.priced ? formatMoney(row.amount) : "-"}
-                  {row.priced && row.priced < row.payments ? <small>{row.payments - row.priced} not priced</small> : null}
+                  {month.forecast ? formatMoney(month.forecast) : "-"}
+                  {month.unpriced ? <small>+{month.unpriced} not priced</small> : null}
                 </td>
+                <td className="numeric">{month.invoiced + month.forecast ? formatMoney(month.invoiced + month.forecast) : "-"}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {projectScope === "all" && extract ? (
+        <p className="plan-hint">With All projects, invoiced payments include every AM purchase in WINSYS (consumables, CAPEX, non-project).</p>
+      ) : null}
 
       <div className="plan-lines-head">
         <h3>Upcoming payments</h3>
         <label className="plan-toggle">
-          <input type="checkbox" checked={showInvoiced} onChange={(event) => setShowInvoiced(event.target.checked)} />
-          Include lines already picked up or received
+          <input type="checkbox" checked={showForecastOnly} onChange={(event) => setShowForecastOnly(event.target.checked)} />
+          Forecast only
         </label>
       </div>
       <div className="plan-table-wrap">
@@ -128,7 +180,7 @@ export function MdmpCashflow({ wb }: MdmpCashflowProps) {
           <thead>
             <tr>
               <th scope="col">Due</th>
-              <th scope="col">Invoice</th>
+              <th scope="col">Source</th>
               <th scope="col">Project</th>
               <th scope="col">Material · vendor</th>
               <th scope="col">Terms</th>
@@ -137,36 +189,29 @@ export function MdmpCashflow({ wb }: MdmpCashflowProps) {
             </tr>
           </thead>
           <tbody>
-            {detail.map((event) => (
-              <tr key={event.key}>
-                <td>{dayLabel.format(event.dueDate)}</td>
+            {detail.map((row) => (
+              <tr key={row.key}>
+                <td>{dayLabel.format(row.due)}</td>
                 <td>
-                  {formatWeek(event.invoiceWeek)}
-                  <small>
-                    {event.basis === "pickup" ? `at pickup (${event.line.incoterms})` : `at delivery (${event.line.incoterms || "-"})`}
-                    {event.done ? " · done" : ""}
-                  </small>
+                  <span className={`status ${row.kind === "invoiced" ? "tone-active" : "tone-approval"}`}>{row.kind === "invoiced" ? "Invoiced" : "Forecast"}</span>
+                  <small>{row.when}</small>
                 </td>
-                <td>{event.project.sheet}</td>
+                <td>{row.project}</td>
                 <td>
-                  {event.line.group}
-                  <small>
-                    {event.line.manufacturer}
-                    {event.line.poNumbers.length ? ` · PO ${event.line.poNumbers.join(", ")}` : ""}
-                  </small>
+                  {row.material}
+                  <small>{row.detail}</small>
                 </td>
-                <td>{formatPaymentTerms(parsePaymentTerms(event.line.paymentTerms))}</td>
-                <td className="numeric">
-                  {event.qty.toLocaleString()} {event.line.unit}
-                </td>
-                <td className="numeric">{event.amount === null ? "-" : formatMoney(event.amount)}</td>
+                <td>{row.terms}</td>
+                <td className="numeric">{row.qty}</td>
+                <td className="numeric">{row.amount === null ? "-" : formatMoney(row.amount)}</td>
               </tr>
             ))}
           </tbody>
         </table>
         {!detail.length ? <p className="empty-state table-empty">No upcoming vendor payments.</p> : null}
       </div>
-      {events.length > DETAIL_LIMIT ? <p className="plan-hint">Showing the first {DETAIL_LIMIT} payments by due date.</p> : null}
+      {rows.length > DETAIL_LIMIT ? <p className="plan-hint">Showing the first {DETAIL_LIMIT} of {rows.length} payments by due date.</p> : null}
+      {mdmp.mdmp.kind === "ready" ? <p className="plan-hint">MDMP: {describeMppFile(mdmp.mdmp.file.fileName)}</p> : null}
     </section>
   );
 }

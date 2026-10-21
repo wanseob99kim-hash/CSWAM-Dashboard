@@ -2,6 +2,8 @@
 //   MPP/        Master Production Plan      -> Material Plan, This Week
 //   MDMP/       Material Delivery Mgmt Plan -> Material Delivery, Cashflow, This Week
 //   Lead Time/  Overall lead time workbook  -> lead times for both
+//   WINSYS/     PO Status exports (PO Detail/, GR Detail/, Invoice Detail/)
+//               -> one JSON extract: PO values, receipts, invoices and due dates
 //
 //   npm run plans:publish                 # local dev server (http://localhost:5179)
 //   npm run plans:publish -- --dry-run    # check and summarise only
@@ -19,6 +21,9 @@ import { pickLatestMppFile, type MppFileCandidate } from "../lib/mpp/files";
 import { buildOrderPlan, DEFAULT_PLAN_SETTINGS } from "../lib/mpp/order-plan";
 import { describeMppFile, readMppWorkbook } from "../lib/mpp/read-workbook";
 import { formatWeek, isoWeekOf } from "../lib/mpp/weeks";
+import * as XLSX from "xlsx";
+import { buildWinsysExtract } from "../lib/winsys/extract";
+import { parseGrDetail, parseInvoiceDetail, parsePoDetail } from "../lib/winsys/parse";
 
 const projectRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "..");
 const baseUrl = (process.env.MPP_PUBLISH_URL ?? "http://localhost:5179").replace(/\/+$/, "");
@@ -28,7 +33,7 @@ const force = process.argv.includes("--force");
 const allMppWeeks = process.argv.includes("--all");
 const currentWeek = isoWeekOf(new Date());
 
-type PlanKind = "mpp" | "mdmp" | "leadtime";
+type PlanKind = "mpp" | "mdmp" | "leadtime" | "winsys";
 
 const PLANS: Array<{ kind: PlanKind; label: string; folder: string; summarise: (data: ArrayBuffer) => string }> = [
   {
@@ -73,12 +78,22 @@ function listFiles(dir: string, base = dir): MppFileCandidate[] {
   });
 }
 
+/** fetch that retries once when a kept-alive connection was closed while the script was busy reading workbooks. */
+async function request(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (error) {
+    if (!/ECONNRESET|socket|other side closed/i.test(String((error as { cause?: unknown }).cause ?? error))) throw error;
+    return fetch(url, init);
+  }
+}
+
 const headers = (): Record<string, string> => (token ? { authorization: `Bearer ${token}` } : {});
 
 type ServerFile = { fileName: string; sizeBytes: number; uploadedAt: string };
 
 async function serverFiles(kind: PlanKind): Promise<ServerFile[] | null> {
-  const response = await fetch(`${baseUrl}/api/files?ownerType=workspace&ownerId=${kind}`, { headers: headers() });
+  const response = await request(`${baseUrl}/api/files?ownerType=workspace&ownerId=${kind}`, { headers: headers() });
   if (!response.ok) return null; // e.g. no browser sign-in when publishing with the token
   return ((await response.json()) as { data: ServerFile[] }).data;
 }
@@ -118,17 +133,21 @@ async function publishFile(plan: (typeof PLANS)[number], dir: string, relativePa
   console.log(`${plan.label.padEnd(10)} ${latest.path} (${describeMppFile(fileName)}): ${summary}`);
   if (dryRun) return;
 
-  if (!force && alreadyOnServer(plan.kind, onServer, fileName, bytes.byteLength)) {
+  await upload(plan.kind, plan.label, fileName, bytes, onServer);
+}
+
+async function upload(kind: PlanKind, label: string, fileName: string, bytes: Uint8Array, onServer: ServerFile[] | null): Promise<void> {
+  if (!force && alreadyOnServer(kind, onServer, fileName, bytes.byteLength)) {
     console.log(`${"".padEnd(10)} already on ${baseUrl}, not uploaded (use --force to upload again)`);
     return;
   }
   const form = new FormData();
-  form.set("file", new Blob([bytes]), fileName);
+  form.set("file", new Blob([new Uint8Array(bytes)]), fileName);
   form.set("projectId", "workspace");
   form.set("ownerType", "workspace");
-  form.set("ownerId", plan.kind);
-  form.set("kind", plan.kind);
-  const response = await fetch(`${baseUrl}/api/files`, { method: "POST", headers: headers(), body: form });
+  form.set("ownerId", kind);
+  form.set("kind", kind);
+  const response = await request(`${baseUrl}/api/files`, { method: "POST", headers: headers(), body: form });
   const text = await response.text();
   if (!response.ok) {
     let message = text;
@@ -137,16 +156,65 @@ async function publishFile(plan: (typeof PLANS)[number], dir: string, relativePa
     } catch {
       // keep the raw text
     }
-    throw new Error(`${plan.label} upload to ${baseUrl} failed (${response.status}): ${message}`);
+    throw new Error(`${label} upload to ${baseUrl} failed (${response.status}): ${message}`);
   }
   console.log(`${"".padEnd(10)} uploaded to ${baseUrl}`);
 }
 
+const WINSYS_FOLDERS = { po: "PO Detail", gr: "GR Detail", invoice: "Invoice Detail" } as const;
+const DATE_IN_NAME = /(20\d{2})[-_.]?(\d{2})[-_.]?(\d{2})/;
+
+function readSheetRows(file: string): unknown[][] {
+  const workbook = XLSX.read(readFileSync(file), { type: "buffer", cellDates: true });
+  return XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: "" }) as unknown[][];
+}
+
+/** Newest export per WINSYS subfolder (by the date in its name, then modification time). */
+function newestExport(dir: string): { file: string; date: string | null } | null {
+  if (!existsSync(dir)) return null;
+  const files = listFiles(dir).filter((file) => /\.xlsx?$/i.test(file.path) && !path.basename(file.path).startsWith("~$"));
+  const dated = files.map((file) => {
+    const match = DATE_IN_NAME.exec(path.basename(file.path));
+    return { ...file, date: match ? `${match[1]}-${match[2]}-${match[3]}` : null };
+  });
+  dated.sort((left, right) => (right.date ?? "").localeCompare(left.date ?? "") || right.modifiedMs - left.modifiedMs);
+  return dated[0] ? { file: path.join(dir, dated[0].path), date: dated[0].date } : null;
+}
+
+async function publishWinsys(): Promise<void> {
+  const root = path.resolve(projectRoot, process.env.WINSYS_DIR ?? "WINSYS");
+  const found = Object.fromEntries(
+    Object.entries(WINSYS_FOLDERS).map(([key, folder]) => [key, newestExport(path.join(root, folder))]),
+  ) as Record<keyof typeof WINSYS_FOLDERS, ReturnType<typeof newestExport>>;
+  const missing = Object.entries(found).filter(([, value]) => !value).map(([key]) => `WINSYS/${WINSYS_FOLDERS[key as keyof typeof WINSYS_FOLDERS]}/`);
+  if (missing.length) {
+    console.log(`${"WINSYS".padEnd(10)} no export in ${missing.join(", ")}, skipped`);
+    return;
+  }
+  const { po, gr, invoice } = found as Record<keyof typeof WINSYS_FOLDERS, NonNullable<ReturnType<typeof newestExport>>>;
+  const asOf = po.date ?? new Date().toISOString().slice(0, 10);
+  const extract = buildWinsysExtract(
+    { poLines: parsePoDetail(readSheetRows(po.file)), receipts: parseGrDetail(readSheetRows(gr.file)), invoices: parseInvoiceDetail(readSheetRows(invoice.file)) },
+    { po: path.basename(po.file), gr: path.basename(gr.file), invoice: path.basename(invoice.file) },
+    asOf,
+  );
+  const bytes = new TextEncoder().encode(JSON.stringify(extract));
+  const live = extract.pos.filter((po) => !po.cancelled);
+  const value = live.reduce((sum, po) => sum + po.usdAmount, 0);
+  const openDue = extract.openInvoices.filter((item) => (item.dueDate ?? "") >= new Date().toISOString().slice(0, 10)).reduce((sum, item) => sum + item.usdAmount, 0);
+  console.log(
+    `${"WINSYS".padEnd(10)} exports of ${asOf}: ${live.length} POs (${Math.round(value / 1e6)}M USD), ${extract.openInvoices.length} open invoice lines, ${Math.round(openDue / 1e6)}M USD invoiced and not yet due; extract ${(bytes.byteLength / 1024 / 1024).toFixed(1)} MB`,
+  );
+  if (dryRun) return;
+  await upload("winsys", "WINSYS", `WINSYS extract ${asOf}.json`, bytes, await serverFiles("winsys"));
+}
+
 async function main() {
   for (const plan of PLANS) await publish(plan);
+  await publishWinsys();
 }
 
 main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : error);
+  console.error(error instanceof Error ? `${error.message}${error.cause ? ` (${String(error.cause)})` : ""}` : error);
   process.exitCode = 1;
 });

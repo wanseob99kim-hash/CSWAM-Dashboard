@@ -28,11 +28,14 @@ export const ALLOWED_FILE_TYPES: Record<string, string> = {
   zip: "application/zip",
 };
 
+/** Data extracts the app reads itself; accepted only for the kinds that list them in KIND_EXTENSIONS. */
+const DATA_FILE_TYPES: Record<string, string> = { json: "application/json" };
+
 const OWNER_KINDS = {
   supplier_plan: ["attachment"],
   supplier_plan_batch: ["commercial_invoice", "packing_list"],
   /** Shared, team-wide documents such as the weekly Master Production Plan. */
-  workspace: ["mpp", "mdmp", "leadtime"],
+  workspace: ["mpp", "mdmp", "leadtime", "winsys"],
 } as const;
 
 /** Production plans are read by the app, so only spreadsheets are accepted for them. */
@@ -40,6 +43,8 @@ const KIND_EXTENSIONS: Partial<Record<FileOwner["kind"], string[]>> = {
   mpp: ["xlsx", "xls"],
   mdmp: ["xlsx", "xls"],
   leadtime: ["xlsx", "xls"],
+  /** WINSYS PO, receipt, and invoice extract built by scripts/publish-plans.ts. */
+  winsys: ["json"],
 };
 
 const id = z.string().trim().min(1).max(200);
@@ -130,12 +135,13 @@ export async function uploadFile(
   clock: Clock,
 ): Promise<StoredFile> {
   const fileName = cleanFileName(file.name);
-  const contentType = ALLOWED_FILE_TYPES[fileExtension(fileName)];
+  const extension = fileExtension(fileName);
+  const contentType = ALLOWED_FILE_TYPES[extension] ?? (KIND_EXTENSIONS[owner.kind]?.includes(extension) ? DATA_FILE_TYPES[extension] : undefined);
   if (!contentType) {
     throw new FileRuleError(`File type not allowed. Use one of: ${Object.keys(ALLOWED_FILE_TYPES).join(", ")}.`, 400);
   }
   const kindExtensions = KIND_EXTENSIONS[owner.kind];
-  if (kindExtensions && !kindExtensions.includes(fileExtension(fileName))) {
+  if (kindExtensions && !kindExtensions.includes(extension)) {
     throw new FileRuleError(`This document must be one of: ${kindExtensions.join(", ")}.`, 400);
   }
   if (file.size <= 0) throw new FileRuleError("The file is empty.", 400);

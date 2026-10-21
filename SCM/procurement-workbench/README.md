@@ -32,6 +32,7 @@ Put the newest files in their folders (any subfolder) and publish them:
 | `MPP/` | Master Production Plan, e.g. `2026/WK43 MPP 2026_R0.xlsx` | Material Plan |
 | `MDMP/` | Material Delivery Management Plan, e.g. `2026/MDMP CSAM 2026_WK42_R1.xlsx` | Material Delivery, This Week, Cashflow |
 | `Lead Time/` | Supplier lead-time workbook | Material Delivery, Material Plan lead times |
+| `WINSYS/PO Detail/`, `WINSYS/GR Detail/`, `WINSYS/Invoice Detail/` | WINSYS > Purchasing > PO Status > PO X GR X Invoice exports (Excel, "non Style"), dated in the name, e.g. `PO Detail List 2026-10-20.xlsx` | PO values, invoiced vs forecast payments, MDMP vs SAP receipts |
 
 ```bash
 npm run plans:publish -- --dry-run   # check each file and print its summary
@@ -52,7 +53,7 @@ or the quantity arriving on site; green cells are done. For pickup Incoterms
 the vendor invoices in the pickup week (when no marker is set, arrival minus the
 observed or lead-time transit); for DAP/DDP in the arrival week. The due date is
 the invoice date plus the payment terms (`EOM + N` counts from month end).
-Amounts appear once SAP PO detail is uploaded in Supplier Schedule.
+Amounts come from the WINSYS extract: the three exports are reduced to one JSON file (per-PO totals and invoices not yet due; bank details are not read) and uploaded with the plans. Invoiced value is paid on WINSYS due dates and taken off the MDMP forecast. Without it, the SAP PO detail uploaded in Supplier Schedule is used.
 
 ## Commands
 

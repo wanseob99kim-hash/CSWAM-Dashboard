@@ -125,7 +125,7 @@ export type CashEvent = {
 };
 
 /** PO value per MDMP line from SAP PO detail lines, split by quantity when lines share a PO. */
-export function poValueByLine(projects: MdmpProject[], poLines: readonly PurchasePoLine[]): Map<MdmpLine, number> {
+export function poValueByLine(projects: MdmpProject[], poLines: ReadonlyArray<Pick<PurchasePoLine, "po" | "amount">>): Map<MdmpLine, number> {
   const amountByPo = new Map<string, number>();
   for (const line of poLines) amountByPo.set(line.po, (amountByPo.get(line.po) ?? 0) + line.amount);
   const linesByPo = new Map<string, MdmpLine[]>();

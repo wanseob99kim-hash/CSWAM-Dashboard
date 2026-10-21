@@ -19,13 +19,15 @@ import type { MaterialPlanSettings } from "@/lib/mpp/order-plan";
 import type { MppPlan, MppProject } from "@/lib/mpp/parse";
 import { isoWeekOf } from "@/lib/mpp/weeks";
 import type { Project, PurchasePoLine } from "@/lib/types";
+import { cancelledMdmpPos, receiptGaps, splitInvoiced, unknownMdmpPos, winsysPoAmounts } from "@/lib/winsys/analysis";
+import { readWinsysExtract, type WinsysExtract } from "@/lib/winsys/extract";
 
 /** Pickups and arrivals listed this many weeks ahead. */
 const UPCOMING_WEEKS = 3;
 
 type Loaded<T> = { kind: "idle" | "loading" | "empty" } | { kind: "ready"; file: AttachmentFile; data: T } | { kind: "error"; message: string };
 
-async function loadLatest<T>(ownerId: "mdmp" | "leadtime", read: (data: ArrayBuffer) => T): Promise<Loaded<T>> {
+async function loadLatest<T>(ownerId: "mdmp" | "leadtime" | "winsys", read: (data: ArrayBuffer) => T): Promise<Loaded<T>> {
   const listed = await listAttachments({ ownerType: "workspace", ownerId });
   if (listed.kind === "unauthorized") return { kind: "error", message: "Sign in to see the shared plan files." };
   if (listed.kind !== "ok") return { kind: "error", message: listed.message };
@@ -48,6 +50,7 @@ async function loadLatest<T>(ownerId: "mdmp" | "leadtime", read: (data: ArrayBuf
 export function useMdmp(enabled: boolean, projects: Project[], poLines: PurchasePoLine[], settings: MaterialPlanSettings, mppPlan: MppPlan | null) {
   const [mdmp, setMdmp] = useState<Loaded<MdmpPlan>>({ kind: "idle" });
   const [leadTimes, setLeadTimes] = useState<Loaded<LeadTimeTable>>({ kind: "idle" });
+  const [winsys, setWinsys] = useState<Loaded<WinsysExtract>>({ kind: "idle" });
   const currentWeek = useMemo(() => isoWeekOf(new Date()), []);
 
   useEffect(() => {
@@ -56,8 +59,10 @@ export function useMdmp(enabled: boolean, projects: Project[], poLines: Purchase
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMdmp({ kind: "loading" });
     setLeadTimes({ kind: "loading" });
+    setWinsys({ kind: "loading" });
     void loadLatest("mdmp", (data) => readMdmpWorkbook(data)).then((next) => active && setMdmp(next));
     void loadLatest("leadtime", readLeadTimeWorkbook).then((next) => active && setLeadTimes(next));
+    void loadLatest("winsys", (data) => readWinsysExtract(new TextDecoder().decode(data))).then((next) => active && setWinsys(next));
     return () => {
       active = false;
     };
@@ -65,6 +70,7 @@ export function useMdmp(enabled: boolean, projects: Project[], poLines: Purchase
 
   const plan = mdmp.kind === "ready" ? mdmp.data : null;
   const table = leadTimes.kind === "ready" ? leadTimes.data : null;
+  const extract = winsys.kind === "ready" ? winsys.data : null;
 
   const derived = useMemo(() => {
     if (!plan) return null;
@@ -90,12 +96,18 @@ export function useMdmp(enabled: boolean, projects: Project[], poLines: Purchase
       drift: scheduleDrift(plan.projects, mppBySheet),
       coverage: scheduled.flatMap((project) => coverageChecks(project, currentWeek)),
       upcoming: upcomingShipments(plan.projects, leadTimeFor, currentWeek, UPCOMING_WEEKS),
-      cash: cashEvents(plan.projects, leadTimeFor, poValueByLine(plan.projects, poLines)),
+      // WINSYS PO values replace the manually uploaded SAP PO detail when published.
+      cash: extract
+        ? splitInvoiced(cashEvents(plan.projects, leadTimeFor, poValueByLine(plan.projects, winsysPoAmounts(extract))), plan.projects, extract)
+        : cashEvents(plan.projects, leadTimeFor, poValueByLine(plan.projects, poLines)).map((event) => ({ ...event, invoicedAmount: 0, forecastAmount: event.amount })),
+      receiptGaps: extract ? receiptGaps(plan.projects, extract) : [],
+      cancelledPos: extract ? cancelledMdmpPos(plan.projects, extract) : [],
+      unknownPos: extract ? unknownMdmpPos(plan.projects, extract) : [],
       openIssues: plan.issues.filter((issue) => !/^clos/i.test(issue.status)),
     };
-  }, [plan, table, settings, projects, poLines, currentWeek, mppPlan]);
+  }, [plan, table, extract, settings, projects, poLines, currentWeek, mppPlan]);
 
-  return { mdmp, leadTimes, leadTable: table, currentWeek, derived };
+  return { mdmp, leadTimes, winsys, leadTable: table, currentWeek, derived };
 }
 
 export type MdmpState = ReturnType<typeof useMdmp>;

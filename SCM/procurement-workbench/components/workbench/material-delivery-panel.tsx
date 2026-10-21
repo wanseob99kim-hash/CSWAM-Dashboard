@@ -47,6 +47,10 @@ export function MaterialDeliveryPanel({ wb }: MaterialDeliveryPanelProps) {
     (issue) => projectScope === "all" || projects.some((project) => issueMatchesSheet(issue.project, project)),
   );
   const drift = (derived?.drift ?? []).filter((item) => inScope(item.project));
+  const receiptGaps = (derived?.receiptGaps ?? []).filter((gap) => inScope(gap.project));
+  const cancelledPos = (derived?.cancelledPos ?? []).filter((item) => inScope(item.project));
+  const winsysAsOf = mdmp.winsys.kind === "ready" ? mdmp.winsys.data.asOf : null;
+  const percent = (share: number) => `${Math.round(share * 100)}%`;
   const overdue = upcoming.filter((item) => item.weeksFromNow < 0);
   const unmatched = (derived?.plan.projects ?? []).filter((project) => !derived?.projectIdBySheet.has(project.sheet));
   const scopeName = projectScope === "all" ? null : projectList.find((project) => project.id === projectScope)?.name;
@@ -169,6 +173,45 @@ export function MaterialDeliveryPanel({ wb }: MaterialDeliveryPanelProps) {
                     </li>
                   ))}
                 </ul>
+              </section>
+            ) : null}
+
+            {winsysAsOf ? (
+              <section className="plan-card" aria-labelledby="mdmp-sap">
+                <h3 id="mdmp-sap">MDMP vs SAP (WINSYS exports of {winsysAsOf})</h3>
+                <p className="plan-hint">
+                  Lines where the MDMP&apos;s green (done) arrivals and SAP goods receipts on the same POs differ by more than 20 points, and POs the MDMP still lists after
+                  SAP cancelled them.
+                </p>
+                <ul className="plan-list">
+                  {cancelledPos.map((item) => (
+                    <li key={`${item.project.sheet}-${item.line.row}-${item.po}`} data-tone="warning">
+                      <strong>PO {item.po} cancelled in SAP</strong> · {item.project.sheet} · {item.line.group} · {item.line.manufacturer}
+                      <small>Still on MDMP row {item.line.row}; check whether it was reissued under a new PO.</small>
+                    </li>
+                  ))}
+                  {receiptGaps.slice(0, 25).map((gap) => (
+                    <li key={`${gap.project.sheet}-${gap.line.row}`} data-tone={gap.sapReceived > gap.mdmpDone ? "info" : "warning"}>
+                      <strong>
+                        SAP received {percent(gap.sapReceived)} · MDMP done {percent(gap.mdmpDone)}
+                      </strong>{" "}
+                      · {gap.project.sheet} · {gap.line.group} · {gap.line.manufacturer}
+                      <small>
+                        PO {gap.line.poNumbers.join(", ")}
+                        {gap.lastReceipt ? ` · last receipt ${gap.lastReceipt}` : ""} ·{" "}
+                        {gap.sapReceived > gap.mdmpDone ? "mark the received arrivals done in the MDMP" : "MDMP shows arrivals SAP has not received"}
+                      </small>
+                    </li>
+                  ))}
+                  {!cancelledPos.length && !receiptGaps.length ? <li>MDMP arrivals match SAP goods receipts.</li> : null}
+                </ul>
+                {receiptGaps.length > 25 ? <p className="plan-hint">Showing 25 of {receiptGaps.length} lines, largest gaps first.</p> : null}
+                {projectScope === "all" && derived.unknownPos.length ? (
+                  <p className="plan-hint">
+                    {derived.unknownPos.length} MDMP PO numbers are not in the WINSYS export (older than its date range, or mistyped): {derived.unknownPos.slice(0, 12).join(", ")}
+                    {derived.unknownPos.length > 12 ? " …" : ""}
+                  </p>
+                ) : null}
               </section>
             ) : null}
 
